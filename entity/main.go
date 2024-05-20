@@ -24,6 +24,7 @@ type OrderBook struct {
 }
 
 type Trade struct {
+	ID     string
 	Price  float64
 	Volume float64
 	Time   time.Time

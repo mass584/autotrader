@@ -151,6 +151,8 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 	var recentTrades entity.TradeCollection
 
 	for _, trade := range mappedResp.Data {
+		id := "coincheck-" + strconv.Itoa(trade.ID)
+
 		time, err := time.Parse(time.RFC3339, trade.CreatedAt)
 		if err != nil {
 			fmt.Println("Error:", err)
@@ -166,7 +168,7 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 			fmt.Println("Error:", err)
 		}
 
-		recentTrades = append(recentTrades, entity.Trade{Price: price, Volume: volume, Time: time})
+		recentTrades = append(recentTrades, entity.Trade{ID: id, Price: price, Volume: volume, Time: time})
 	}
 
 	return recentTrades
@@ -217,6 +219,8 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.T
 	var trades entity.TradeCollection
 
 	for _, complete := range mappedResp.Completes {
+		id := "coincheck-" + strconv.Itoa(complete.ID)
+
 		time, err := time.Parse(time.RFC3339, complete.CreatedAt)
 		if err != nil {
 			fmt.Println("Error:", err)
@@ -232,7 +236,7 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.T
 			fmt.Println("Error:", err)
 		}
 
-		trades = append(trades, entity.Trade{Price: price, Volume: volume, Time: time})
+		trades = append(trades, entity.Trade{ID: id, Price: price, Volume: volume, Time: time})
 	}
 
 	return trades

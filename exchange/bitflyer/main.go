@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/mass584/auto-trade/entity"
@@ -100,7 +101,7 @@ const (
 )
 
 type ExecutionsResponse []struct {
-	Id                         int64   `json:"id"`
+	Id                         int     `json:"id"`
 	Side                       Side    `json:"side"`
 	Price                      float64 `json:"price"`
 	Size                       float64 `json:"size"`
@@ -139,11 +140,13 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 
 	var recentTrades entity.TradeCollection
 	for _, execution := range mappedResp {
+		id := "bitflyer-" + strconv.Itoa(execution.Id)
+
 		time, err := time.Parse(time.RFC3339, execution.ExecDate+"Z")
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
-		recentTrades = append(recentTrades, entity.Trade{Price: execution.Price, Volume: execution.Size, Time: time})
+		recentTrades = append(recentTrades, entity.Trade{ID: id, Price: execution.Price, Volume: execution.Size, Time: time})
 	}
 
 	return recentTrades
