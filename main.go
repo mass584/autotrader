@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mass584/auto-trade/entity"
-	"github.com/mass584/auto-trade/exchange/bitflyer"
-	"github.com/mass584/auto-trade/exchange/coincheck"
-	"github.com/mass584/auto-trade/trade_algorithms"
+	"github.com/mass584/autotrader/entity"
+	"github.com/mass584/autotrader/exchange/bitflyer"
+	"github.com/mass584/autotrader/exchange/coincheck"
+	"github.com/mass584/autotrader/trade_algorithms"
 )
 
 func main() {

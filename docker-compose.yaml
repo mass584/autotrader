@@ -12,5 +12,5 @@ services:
       - data-volume:/var/lib/mysql
 volumes:
   data-volume:
-    name: auto-trade-mysql-data-volume
+    name: autotrader-mysql-data-volume
     driver: local

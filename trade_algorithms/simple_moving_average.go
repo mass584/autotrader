@@ -3,7 +3,7 @@ package trade_algorithms
 import (
 	"time"
 
-	"github.com/mass584/auto-trade/entity"
+	"github.com/mass584/autotrader/entity"
 )
 
 func CalculateSimpleMovingAverage(trades entity.TradeCollection, period time.Duration) float64 {

@@ -3,7 +3,7 @@ package trade_algorithms
 import (
 	"math"
 
-	"github.com/mass584/auto-trade/entity"
+	"github.com/mass584/autotrader/entity"
 )
 
 func DetermineOrderPrice(orderBook entity.OrderBook, trades entity.TradeCollection) float64 {

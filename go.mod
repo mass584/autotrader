@@ -1,4 +1,4 @@
-module github.com/mass584/auto-trade
+module github.com/mass584/autotrader
 
 go 1.22.3
 

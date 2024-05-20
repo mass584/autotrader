@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mass584/auto-trade/entity"
+	"github.com/mass584/autotrader/entity"
 )
 
 type ExchangePairCode string
