@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  mysql:
+    image: public.ecr.aws/docker/library/mysql:8.0-debian
+    platform: linux/amd64
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysql
+      - TZ=Japan
+    volumes:
+      - data-volume:/var/lib/mysql
+volumes:
+  data-volume:
+    name: auto-trade-mysql-data-volume
+    driver: local
