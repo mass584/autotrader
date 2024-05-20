@@ -32,11 +32,6 @@ func getExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {
 	}
 }
 
-type OrderBooksResponse struct {
-	Asks [][]string `json:"asks"`
-	Bids [][]string `json:"bids"`
-}
-
 func GetOrderBook(exchangePair entity.ExchangePair) entity.OrderBook {
 	code := getExchangePairCode(exchangePair)
 	if code == NO_DEAL {
@@ -57,7 +52,10 @@ func GetOrderBook(exchangePair entity.ExchangePair) entity.OrderBook {
 		return entity.OrderBook{}
 	}
 
-	var mappedResp OrderBooksResponse
+	var mappedResp struct {
+		Asks [][]string `json:"asks"`
+		Bids [][]string `json:"bids"`
+	}
 	err = json.Unmarshal(body, &mappedResp)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -99,32 +97,12 @@ const (
 	DESC Order = "desc"
 )
 
-type Pagination struct {
-	Limit         int   `json:"limit"`
-	Order         Order `json:"order"`
-	StartingAfter *int  `json:"starting_after"`
-	EndingBefore  *int  `json:"ending_before"`
-}
-
 type OrderType string
 
 const (
 	BUY  OrderType = "buy"
 	SELL OrderType = "sell"
 )
-
-type TradesResponse struct {
-	Success    bool       `json:"success"`
-	Pagination Pagination `json:"pagination"`
-	Data       []struct {
-		ID        int    `json:"id"`
-		Amount    string `json:"amount"`
-		Rate      string `json:"rate"`
-		Pair      string `json:"pair"`
-		OrderType string `json:"order_type"`
-		CreatedAt string `json:"created_at"`
-	} `json:"data"`
-}
 
 func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 	code := getExchangePairCode(exchangePair)
@@ -147,7 +125,23 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 		return []entity.Trade{}
 	}
 
-	var mappedResp TradesResponse
+	var mappedResp struct {
+		Success    bool `json:"success"`
+		Pagination struct {
+			Limit         int   `json:"limit"`
+			Order         Order `json:"order"`
+			StartingAfter *int  `json:"starting_after"`
+			EndingBefore  *int  `json:"ending_before"`
+		} `json:"pagination"`
+		Data []struct {
+			ID        int       `json:"id"`
+			Amount    string    `json:"amount"`
+			Rate      string    `json:"rate"`
+			Pair      string    `json:"pair"`
+			OrderType OrderType `json:"order_type"`
+			CreatedAt string    `json:"created_at"`
+		} `json:"data"`
+	}
 	err = json.Unmarshal(body, &mappedResp)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -176,4 +170,70 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 	}
 
 	return recentTrades
+}
+
+type AllTrades struct {
+	ID    int
+	Trade entity.Trade
+}
+
+func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.TradeCollection {
+	code := getExchangePairCode(exchangePair)
+	if code == NO_DEAL {
+		fmt.Println("Error: No deal")
+		return entity.TradeCollection{}
+	}
+
+	query := "pair=" + string(code) + "&last_id=" + strconv.Itoa(lastId)
+	resp, err := http.Get("https://coincheck.com/ja/exchange/orders/completes?" + query)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return entity.TradeCollection{}
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return entity.TradeCollection{}
+	}
+
+	var mappedResp struct {
+		Completes []struct {
+			ID        int    `json:"id"`
+			Amount    string `json:"amount"`
+			Rate      string `json:"rate"`
+			OrderType string `json:"order_type"`
+			CreatedAt string `json:"created_at"`
+		} `json:"completes"`
+	}
+
+	err = json.Unmarshal(body, &mappedResp)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return entity.TradeCollection{}
+	}
+
+	var trades entity.TradeCollection
+
+	for _, complete := range mappedResp.Completes {
+		time, err := time.Parse(time.RFC3339, complete.CreatedAt)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		price, err := strconv.ParseFloat(complete.Rate, 64)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		volume, err := strconv.ParseFloat(complete.Amount, 64)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		trades = append(trades, entity.Trade{Price: price, Volume: volume, Time: time})
+	}
+
+	return trades
 }
