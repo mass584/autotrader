@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"os"
-	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
@@ -28,13 +27,7 @@ func main() {
 		return
 	}
 
-	database_url :=
-		config.DatabaseUser + ":" + config.DatabasePass +
-			"@tcp(" + config.DatabaseHost + ":" + strconv.Itoa(config.DatabasePort) + ")" +
-			"/" + config.DatabaseName +
-			"?multiStatements=true"
-
-	db, error := sql.Open("mysql", database_url)
+	db, error := sql.Open("mysql", config.DatabaseURL())
 
 	if error != nil {
 		log.Fatal(error)
