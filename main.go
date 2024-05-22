@@ -15,14 +15,15 @@ import (
 )
 
 func ScrapingFromCoinCheck(db *gorm.DB) {
-	startID := 1       // TODO データベースの値から決めるようにする
-	endID := 264330000 // TODO APIで取得した値から決めるようにする
+	startID := 240000000 // TODO データベースの値から決めるようにする
+	endID := 264330000   // TODO APIで取得した値から決めるようにする
 	count := endID - startID + 1
 	per := 50
 	pageMax := (count+1)/per + 1
 
 	for page := 0; page < pageMax; page++ {
 		lastId := startID + page*per + per - 1
+		time.Sleep(100 * time.Millisecond)
 		tradeCollection := coincheck.GetAllTradesByLastId(entity.BTC_TO_JPY, lastId)
 		repository.SaveTrades(db, tradeCollection)
 	}

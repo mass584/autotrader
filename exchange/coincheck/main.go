@@ -45,6 +45,11 @@ func GetOrderBook(exchangePair entity.ExchangePair) entity.OrderBook {
 		return entity.OrderBook{}
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// レートリミットに引っかかると403が返ってくる
+		fmt.Println("Error:", err)
+		return entity.OrderBook{}
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -118,6 +123,11 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 		return []entity.Trade{}
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// レートリミットに引っかかると403が返ってくる
+		fmt.Println("Error:", err)
+		return entity.TradeCollection{}
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -200,6 +210,11 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.T
 		return entity.TradeCollection{}
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// レートリミットに引っかかると403が返ってくる
+		fmt.Println("Error:", err)
+		return entity.TradeCollection{}
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
