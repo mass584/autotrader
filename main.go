@@ -6,9 +6,9 @@ import (
 
 	"github.com/mass584/autotrader/config"
 	"github.com/mass584/autotrader/entity"
-	"github.com/mass584/autotrader/exchange/bitflyer"
-	"github.com/mass584/autotrader/exchange/coincheck"
-	"github.com/mass584/autotrader/repository"
+	"github.com/mass584/autotrader/repository/database"
+	"github.com/mass584/autotrader/repository/external/bitflyer"
+	"github.com/mass584/autotrader/repository/external/coincheck"
 	"github.com/mass584/autotrader/trade_algorithms"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -25,7 +25,7 @@ func ScrapingFromCoinCheck(db *gorm.DB) {
 		lastId := startID + page*per + per - 1
 		time.Sleep(100 * time.Millisecond)
 		tradeCollection := coincheck.GetAllTradesByLastId(entity.BTC_TO_JPY, lastId)
-		repository.SaveTrades(db, tradeCollection)
+		database.SaveTrades(db, tradeCollection)
 	}
 }
 
