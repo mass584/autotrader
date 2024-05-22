@@ -11,7 +11,7 @@ type Config struct {
 	DatabasePass string `env:"DATABASE_PASS" envDefault:"mysql"`
 	DatabaseHost string `env:"DATABASE_HOST" envDefault:"localhost"`
 	DatabasePort int    `env:"DATABASE_PORT" envDefault:"3306"`
-	DatabaseName string `env:"DATABASE_NAME" envDefault:"auto_trade"`
+	DatabaseName string `env:"DATABASE_NAME" envDefault:"autotrader"`
 }
 
 func NewConfig() (Config, error) {
