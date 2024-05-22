@@ -24,10 +24,12 @@ type OrderBook struct {
 }
 
 type Trade struct {
-	ID     string
-	Price  float64
-	Volume float64
-	Time   time.Time
+	ID           int
+	ExchangeName string
+	TradeID      string
+	Price        float64
+	Volume       float64
+	Time         time.Time
 }
 
 type TradeCollection []Trade

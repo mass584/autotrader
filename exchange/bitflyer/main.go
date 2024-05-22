@@ -140,13 +140,20 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 
 	var recentTrades entity.TradeCollection
 	for _, execution := range mappedResp {
-		id := "bitflyer-" + strconv.Itoa(execution.Id)
-
 		time, err := time.Parse(time.RFC3339, execution.ExecDate+"Z")
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
-		recentTrades = append(recentTrades, entity.Trade{ID: id, Price: execution.Price, Volume: execution.Size, Time: time})
+		recentTrades = append(
+			recentTrades,
+			entity.Trade{
+				TradeID:      strconv.Itoa(execution.Id),
+				ExchangeName: "bitflyer",
+				Price:        execution.Price,
+				Volume:       execution.Size,
+				Time:         time,
+			},
+		)
 	}
 
 	return recentTrades
