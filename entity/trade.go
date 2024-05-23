@@ -2,36 +2,6 @@ package entity
 
 import "time"
 
-type ExchangePlace int
-
-// DBに永続化されるので順番を変えないこと
-const (
-	Bitflyer ExchangePlace = iota + 1
-	Coincheck
-)
-
-type ExchangePair int
-
-// DBに永続化されるので順番を変えないこと
-const (
-	BTC_TO_JPY ExchangePair = iota + 1
-	ETH_TO_JPY
-	ETH_TO_BTC
-	ETC_TO_JPY
-	XRP_TO_JPY
-	BCH_TO_BTC
-)
-
-type Order struct {
-	Price  float64
-	Volume float64
-}
-
-type OrderBook struct {
-	Asks []Order
-	Bids []Order
-}
-
 type Trade struct {
 	ID            int
 	ExchangePlace ExchangePlace
