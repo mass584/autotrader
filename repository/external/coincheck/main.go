@@ -204,7 +204,7 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.T
 		return entity.TradeCollection{}
 	}
 
-	query := "pair=" + string(code) + "&last_id=" + strconv.Itoa(lastId)
+	query := "pair=" + string(code) + "&last_id=" + strconv.Itoa(lastId+1)
 	resp, err := http.Get("https://coincheck.com/ja/exchange/orders/completes?" + query)
 	if err != nil {
 		fmt.Println("Error:", err)

@@ -13,18 +13,40 @@ import (
 )
 
 func ScrapingTradesFromCoincheck(db *gorm.DB) {
-	startID := 240000000 // TODO データベースの値から決めるようにする
-	endID := 264330000   // TODO APIで取得した値から決めるようにする
-	count := endID - startID + 1
-	per := 50
-	pageMax := (count+1)/per + 1
+	// 過去に遡った取引履歴をスクレイピングするが
+	// id=240000001(2023-02-22 19:03:39)よりも過去には遡らない
+	fromID := 240000001
+	// TODO fromIDをスクレイピング履歴から決定するように変更する
+	// fromID := hogehoge
 
+	// この関数の実行時間を短くするために、過去100000件の取引履歴をスクレイピングする
+	// およそ3時間くらいかかる見込みだが、必要に応じて調整すること
+	toID := fromID + 100000 - 1
+
+	// スクレイピング履歴の作成
+	tradeFrom := coincheck.GetAllTradesByLastId(entity.BTC_TO_JPY, fromID).LatestTrade()
+	tradeTo := coincheck.GetAllTradesByLastId(entity.BTC_TO_JPY, toID).LatestTrade()
+	scrapingHistory := entity.ScrapingHistory{
+		FromID:   tradeFrom.ID,
+		ToID:     tradeTo.ID,
+		FromTime: tradeFrom.Time,
+		ToTime:   tradeTo.Time,
+	}
+	database.CreateScrapingHistory(db, scrapingHistory)
+
+	// スクレイピングの実行
+	count := toID - fromID + 1
+	per := 50 // スクレイピング対象となるAPIの都合上、50件ずつに分割して取得する
+	pageMax := (count+1)/per + 1
 	for page := 0; page < pageMax; page++ {
-		lastId := startID + page*per + per - 1
-		time.Sleep(100 * time.Millisecond)
+		lastId := fromID + page*per + per - 1
+		time.Sleep(100 * time.Millisecond) // レートリミットに引っかからないように100ミリ秒待つ
 		tradeCollection := coincheck.GetAllTradesByLastId(entity.BTC_TO_JPY, lastId)
 		database.SaveTrades(db, tradeCollection)
 	}
+
+	// スクレイピングステータスの更新
+	database.UpdateScrapingHistoryStatus(db, scrapingHistory, entity.ScrapingStatusSuccess)
 }
 
 func DetermineOrderPrice() {
