@@ -33,9 +33,9 @@ func CalculateSimpleMovingAverage(trades entity.TradeCollection, period time.Dur
 }
 
 func TrendFollowingSignal(tradeCollection entity.TradeCollection) (Decision, float64) {
-	// どれくらいの期間での単純移動平均を取るかのパラメータチューニングが必要
-	shortSMA := CalculateSimpleMovingAverage(tradeCollection, 5*time.Minute)
-	longSMA := CalculateSimpleMovingAverage(tradeCollection, 50*time.Minute)
+	// 一般的なパラメータとして、短期移動平均と長期移動平均の期間を10日と50日とする
+	shortSMA := CalculateSimpleMovingAverage(tradeCollection, 10*24*time.Hour)
+	longSMA := CalculateSimpleMovingAverage(tradeCollection, 50*24*time.Hour)
 	currentPrice := tradeCollection[len(tradeCollection)-1].Price
 
 	if shortSMA > longSMA {

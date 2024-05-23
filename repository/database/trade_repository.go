@@ -27,6 +27,7 @@ func GetTradesByTimeRange(
 		Where("exchange_place = ?", exchange_place).
 		Where("exchange_pair = ?", exchange_pair).
 		Where("? <= time and time <= ?", from, to).
+		Order("time DESC").
 		Find(&tradeCollection)
 	return tradeCollection
 }

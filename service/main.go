@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"github.com/mass584/autotrader/entity"
+	"github.com/mass584/autotrader/repository/database"
 	"github.com/mass584/autotrader/repository/external/bitflyer"
 	"github.com/mass584/autotrader/repository/external/coincheck"
 	"github.com/mass584/autotrader/trade_algorithms"
+	"gorm.io/gorm"
 )
 
 func DetermineOrderPrice() {
@@ -22,11 +24,11 @@ func DetermineOrderPrice() {
 	fmt.Printf("Determined Order Price at Coincheck: %.2f [JPY/BTC]\n", orderPriceCoinCheck)
 }
 
-func CalculateTradeSignal() {
-	// このリポジトリは取引所のサーバーからスクレイピングする実装になっているので、
-	// 50件しか取得できないため、移動平均を計算するのに十分なコレクションを取得することができない。
-	// データベースに永続化したストアから取得するリポジトリに差し替える必要がある。
-	tradeCollection := coincheck.GetAllTradesByLastId(entity.BTC_TO_JPY, 264330000)
+func CalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) {
+	from := signalAt.Add(-50*24*time.Hour - 1*time.Minute)
+	to := signalAt
+	tradeCollection := database.GetTradesByTimeRange(db, entity.Coincheck, exchangePair, from, to)
+
 	trendSignal, _ := trade_algorithms.TrendFollowingSignal(tradeCollection)
 	fmt.Printf("TrandFollowSignal is: %s\n", trendSignal)
 	meanReversionSignal, _ := trade_algorithms.MeanReversionSignal(tradeCollection)

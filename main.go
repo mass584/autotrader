@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os"
+	"time"
 
 	"github.com/mass584/autotrader/config"
 	"github.com/mass584/autotrader/entity"
@@ -49,7 +50,8 @@ func main() {
 	case "order_price":
 		service.DetermineOrderPrice()
 	case "trade_signal":
-		service.CalculateTradeSignal()
+		at := time.Date(2023, 3, 1, 10, 0, 0, 0, time.Local)
+		service.CalculateTradeSignalOnCoincheck(db, entity.BTC_TO_JPY, at)
 	default:
 		log.Fatal().Msg("Invalid execution mode.")
 		os.Exit(1)
