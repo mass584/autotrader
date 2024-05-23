@@ -10,6 +10,7 @@ import (
 	"github.com/mass584/autotrader/repository/external/bitflyer"
 	"github.com/mass584/autotrader/repository/external/coincheck"
 	"github.com/mass584/autotrader/trade_algorithms"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -37,7 +38,7 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 		// 取引ペアが違くてもuniqueなIDが割り当てられているため、取引ペアによらずこのIDから取得する
 		fromID = 240000001
 	}
-	toID := fromID + 1000000 - 1
+	toID := fromID + 100000 - 1
 
 	// スクレイピング履歴の作成
 	tradeFrom := coincheck.GetAllTradesByLastId(exchangePair, fromID).LatestTrade()
@@ -53,6 +54,7 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 	history := database.CreateScrapingHistory(db, scrapingHistory)
 
 	// スクレイピングの実行
+	log.Info().Msgf("Start scraping trades from Coincheck. ID: %d ~ %d", fromID, toID)
 	count := toID - fromID + 1
 	per := 50 // スクレイピング対象となるAPIの都合上、50件ずつに分割して取得する
 	pageMax := (count+1)/per + 1
@@ -63,6 +65,7 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 		tradeCollection := coincheck.GetAllTradesByLastId(exchangePair, lastId)
 		database.SaveTrades(db, tradeCollection)
 	}
+	log.Info().Msgf("End scraping trades from Coincheck. ID: %d ~ %d", fromID, toID)
 
 	// スクレイピングステータスの更新
 	database.UpdateScrapingHistoryStatus(db, history, entity.ScrapingStatusSuccess)
