@@ -179,11 +179,12 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 		recentTrades = append(
 			recentTrades,
 			entity.Trade{
-				ExchangeName: "coincheck",
-				TradeID:      strconv.Itoa(trade.ID),
-				Price:        price,
-				Volume:       volume,
-				Time:         time,
+				ExchangePlace: entity.Coincheck,
+				ExchangePair:  exchangePair,
+				TradeID:       trade.ID,
+				Price:         price,
+				Volume:        volume,
+				Time:          time,
 			},
 		)
 	}
@@ -259,11 +260,12 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.T
 
 		trades = append(
 			trades, entity.Trade{
-				ExchangeName: "coincheck",
-				TradeID:      strconv.Itoa(complete.ID),
-				Price:        price,
-				Volume:       volume,
-				Time:         time,
+				ExchangePlace: entity.Coincheck,
+				ExchangePair:  exchangePair,
+				TradeID:       complete.ID,
+				Price:         price,
+				Volume:        volume,
+				Time:          time,
 			},
 		)
 	}

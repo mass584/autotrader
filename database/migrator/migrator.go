@@ -64,9 +64,9 @@ func main() {
 	}
 
 	if mode == "down" {
-		error = migrator.Down()
+		error = migrator.Steps(-1)
 	} else if mode == "up" {
-		error = migrator.Up()
+		error = migrator.Steps(1)
 	}
 
 	if error != nil {

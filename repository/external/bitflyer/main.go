@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/mass584/autotrader/entity"
@@ -147,11 +146,12 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 		recentTrades = append(
 			recentTrades,
 			entity.Trade{
-				TradeID:      strconv.Itoa(execution.Id),
-				ExchangeName: "bitflyer",
-				Price:        execution.Price,
-				Volume:       execution.Size,
-				Time:         time,
+				ExchangePlace: entity.Bitflyer,
+				ExchangePair:  exchangePair,
+				TradeID:       execution.Id,
+				Price:         execution.Price,
+				Volume:        execution.Size,
+				Time:          time,
 			},
 		)
 	}

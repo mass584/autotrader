@@ -2,8 +2,17 @@ package entity
 
 import "time"
 
+type ExchangePlace int
+
+// DBに永続化されるので順番を変えないこと
+const (
+	Bitflyer ExchangePlace = iota + 1
+	Coincheck
+)
+
 type ExchangePair int
 
+// DBに永続化されるので順番を変えないこと
 const (
 	BTC_TO_JPY ExchangePair = iota + 1
 	ETH_TO_JPY
@@ -24,12 +33,13 @@ type OrderBook struct {
 }
 
 type Trade struct {
-	ID           int
-	ExchangeName string
-	TradeID      string
-	Price        float64
-	Volume       float64
-	Time         time.Time
+	ID            int
+	ExchangePlace ExchangePlace
+	ExchangePair  ExchangePair
+	TradeID       int
+	Price         float64
+	Volume        float64
+	Time          time.Time
 }
 
 type TradeCollection []Trade
