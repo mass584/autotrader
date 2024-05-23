@@ -5,14 +5,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreateScrapingHistory(db *gorm.DB, scrapingHistory entity.ScrapingHistory) {
+func CreateScrapingHistory(db *gorm.DB, scrapingHistory entity.ScrapingHistory) entity.ScrapingHistory {
 	scrapingHistory.ScrapingStatus = entity.ScrapingStatusProcessing
 	db.Create(&scrapingHistory)
+	return scrapingHistory
 }
 
-func UpdateScrapingHistoryStatus(db *gorm.DB, scrapingHistory entity.ScrapingHistory, status entity.ScrapingStatus) {
+func UpdateScrapingHistoryStatus(db *gorm.DB, scrapingHistory entity.ScrapingHistory, status entity.ScrapingStatus) entity.ScrapingHistory {
 	scrapingHistory.ScrapingStatus = status
 	db.Save(&scrapingHistory)
+	return scrapingHistory
 }
 
 func GetScrapingHistoriesByStatus(
@@ -25,6 +27,7 @@ func GetScrapingHistoriesByStatus(
 	db.
 		Where("exchange_place = ?", exchange_place).
 		Where("exchange_pair = ?", exchange_pair).
-		Where("scraping_status = ?", status).Find(&scrapingHistories)
+		Where("scraping_status = ?", status).
+		Find(&scrapingHistories)
 	return scrapingHistories
 }

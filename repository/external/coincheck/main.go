@@ -14,9 +14,10 @@ import (
 type ExchangePairCode string
 
 const (
-	BTC_JPY ExchangePairCode = "btc_jpy"
-	ETC_JPY ExchangePairCode = "etc_jpy"
-	NO_DEAL ExchangePairCode = ""
+	BTC_JPY  ExchangePairCode = "btc_jpy"
+	ETC_JPY  ExchangePairCode = "etc_jpy"
+	MONA_JPY ExchangePairCode = "mona_jpy"
+	NO_DEAL  ExchangePairCode = ""
 )
 
 func getExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {

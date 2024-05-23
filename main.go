@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/mass584/autotrader/config"
+	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/service"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -32,7 +33,7 @@ func main() {
 	mode := args[1]
 	switch mode {
 	case "scraping":
-		service.ScrapingTradesFromCoincheck(db)
+		service.ScrapingTradesFromCoincheck(db, entity.BTC_TO_JPY)
 	case "order_price":
 		service.DetermineOrderPrice()
 	case "trade_signal":

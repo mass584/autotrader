@@ -26,5 +26,5 @@ func (config Config) DatabaseURL() string {
 	return config.DatabaseUser + ":" + config.DatabasePass +
 		"@tcp(" + config.DatabaseHost + ":" + strconv.Itoa(config.DatabasePort) + ")" +
 		"/" + config.DatabaseName +
-		"?multiStatements=true"
+		"?multiStatements=true&parseTime=true"
 }

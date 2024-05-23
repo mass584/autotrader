@@ -5,7 +5,7 @@ create table scraping_histories (
 	exchange_pair tinyint unsigned not null,
 	from_id bigint unsigned not null,
 	to_id bigint unsigned not null,
-	from_time datatime not null,
+	from_time datetime not null,
 	to_time datetime not null,
 	created_at timestamp not null default CURRENT_TIMESTAMP,
 	updated_at timestamp not null default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
