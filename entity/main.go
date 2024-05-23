@@ -44,3 +44,8 @@ func (tc TradeCollection) RecentTrades(duration time.Duration) TradeCollection {
 	}
 	return filteredTrades
 }
+
+func (tc TradeCollection) LatestTrade() Trade {
+	// TradeCollectionはソート済み
+	return tc[0]
+}
