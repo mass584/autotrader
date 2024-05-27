@@ -1,9 +1,12 @@
-package trade_algorithms
+package service
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/mass584/autotrader/entity"
+	"github.com/mass584/autotrader/repository/database"
+	"gorm.io/gorm"
 )
 
 type Decision string
@@ -14,7 +17,18 @@ const (
 	Hold Decision = "HOLD"
 )
 
-func CalculateSimpleMovingAverage(trades entity.TradeCollection, period time.Duration) float64 {
+func CalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) {
+	from := signalAt.Add(-50*24*time.Hour - 1*time.Minute)
+	to := signalAt
+	tradeCollection := database.GetTradesByTimeRange(db, entity.Coincheck, exchangePair, from, to)
+
+	trendSignal, _ := trendFollowingSignal(tradeCollection)
+	fmt.Printf("TrandFollowSignal is: %s\n", trendSignal)
+	meanReversionSignal, _ := meanReversionSignal(tradeCollection)
+	fmt.Printf("MeanReversionSignal is: %s\n", meanReversionSignal)
+}
+
+func calculateSimpleMovingAverage(trades entity.TradeCollection, period time.Duration) float64 {
 	cutoff := trades.LatestTrade().Time.Add(-period)
 
 	var filteredTrades entity.TradeCollection
@@ -32,10 +46,10 @@ func CalculateSimpleMovingAverage(trades entity.TradeCollection, period time.Dur
 	return priceSum / float64(len(filteredTrades))
 }
 
-func TrendFollowingSignal(tradeCollection entity.TradeCollection) (Decision, float64) {
+func trendFollowingSignal(tradeCollection entity.TradeCollection) (Decision, float64) {
 	// 一般的なパラメータとして、短期移動平均と長期移動平均の期間を10日と50日とする
-	shortSMA := CalculateSimpleMovingAverage(tradeCollection, 10*24*time.Hour)
-	longSMA := CalculateSimpleMovingAverage(tradeCollection, 50*24*time.Hour)
+	shortSMA := calculateSimpleMovingAverage(tradeCollection, 10*24*time.Hour)
+	longSMA := calculateSimpleMovingAverage(tradeCollection, 50*24*time.Hour)
 	currentPrice := tradeCollection[len(tradeCollection)-1].Price
 
 	if shortSMA > longSMA {
@@ -46,9 +60,9 @@ func TrendFollowingSignal(tradeCollection entity.TradeCollection) (Decision, flo
 	return Hold, currentPrice
 }
 
-func MeanReversionSignal(tradeCollection entity.TradeCollection) (Decision, float64) {
+func meanReversionSignal(tradeCollection entity.TradeCollection) (Decision, float64) {
 	// どれくらいの期間での単純移動平均を取るかのパラメータチューニングが必要
-	sma := CalculateSimpleMovingAverage(tradeCollection, 1*time.Minute)
+	sma := calculateSimpleMovingAverage(tradeCollection, 1*time.Minute)
 	currentPrice := tradeCollection[len(tradeCollection)-1].Price
 
 	if currentPrice < sma {
