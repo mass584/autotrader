@@ -1,11 +1,11 @@
 package service
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/repository/database"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -17,15 +17,20 @@ const (
 	Hold Decision = "HOLD"
 )
 
-func CalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) {
+func CalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, Decision) {
 	from := signalAt.Add(-50*24*time.Hour - 1*time.Minute)
 	to := signalAt
 	tradeCollection := database.GetTradesByTimeRange(db, entity.Coincheck, exchangePair, from, to)
 
-	trendSignal, _ := trendFollowingSignal(tradeCollection)
-	fmt.Printf("TrandFollowSignal is: %s\n", trendSignal)
+	trendFollowSignal, _ := trendFollowingSignal(tradeCollection)
+	log.Info().Msgf("TrandFollowSignal is: %s\n", trendFollowSignal)
+
 	meanReversionSignal, _ := meanReversionSignal(tradeCollection)
-	fmt.Printf("MeanReversionSignal is: %s\n", meanReversionSignal)
+	log.Info().Msgf("MeanReversionSignal is: %s\n", meanReversionSignal)
+
+	// 一旦、トレンドフォローシグナルとミーンリバージョンシグナルを両方返しておく。
+	// 実際は、これらの相関に応じて1つの決定値を返すように、何らかのルールを科す必要がある。
+	return trendFollowSignal, meanReversionSignal
 }
 
 func calculateSimpleMovingAverage(trades entity.TradeCollection, period time.Duration) float64 {
