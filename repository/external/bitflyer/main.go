@@ -23,17 +23,17 @@ const (
 
 func getBitflyerExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {
 	switch exchangePair {
-	case entity.BTC_TO_JPY:
+	case entity.BTC_JPY:
 		return BTC_JPY
-	case entity.ETH_TO_JPY:
+	case entity.ETH_JPY:
 		return ETH_JPY
-	case entity.ETC_TO_JPY:
+	case entity.ETC_JPY:
 		return NO_DEAL
-	case entity.XRP_TO_JPY:
+	case entity.XRP_JPY:
 		return XRP_JPY
-	case entity.BCH_TO_BTC:
+	case entity.BCH_BTC:
 		return BCH_BTC
-	case entity.ETH_TO_BTC:
+	case entity.ETH_BTC:
 		return ETH_BTC
 	default:
 		return NO_DEAL

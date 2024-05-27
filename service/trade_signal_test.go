@@ -166,7 +166,7 @@ func TestCalculateTradeSignalOnCoincheck_TrendFollow(t *testing.T) {
 				helper.DatabaseCleaner(db)
 			}()
 
-			result, _ := service.CalculateTradeSignalOnCoincheck(db, entity.BTC_TO_JPY, tt.args.signalAt)
+			result, _ := service.CalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, tt.args.signalAt)
 			if result != tt.want {
 				t.Errorf("result = %v, want = %v", result, tt.want)
 			}
@@ -253,7 +253,7 @@ func TestCalculateTradeSignalOnCoincheck_MeanReversion(t *testing.T) {
 				helper.DatabaseCleaner(db)
 			}()
 
-			_, result := service.CalculateTradeSignalOnCoincheck(db, entity.BTC_TO_JPY, tt.args.signalAt)
+			_, result := service.CalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, tt.args.signalAt)
 			if result != tt.want {
 				t.Errorf("result = %v, want = %v", result, tt.want)
 			}

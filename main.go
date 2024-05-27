@@ -46,12 +46,12 @@ func main() {
 	mode := args[1]
 	switch mode {
 	case "scraping":
-		service.ScrapingTradesFromCoincheck(db, entity.BTC_TO_JPY)
+		service.ScrapingTradesFromCoincheck(db, entity.BTC_JPY)
 	case "order_price":
 		service.DetermineOrderPrice()
 	case "trade_signal":
 		at := time.Date(2023, 3, 1, 10, 0, 0, 0, time.Local)
-		service.CalculateTradeSignalOnCoincheck(db, entity.BTC_TO_JPY, at)
+		service.CalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, at)
 	default:
 		log.Fatal().Msg("Invalid execution mode.")
 		os.Exit(1)

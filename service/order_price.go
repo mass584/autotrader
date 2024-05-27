@@ -11,13 +11,13 @@ import (
 )
 
 func DetermineOrderPrice() {
-	orderBookBitflyer := bitflyer.GetOrderBook(entity.BTC_TO_JPY)
-	tradesBitflyer := bitflyer.GetRecentTrades(entity.BTC_TO_JPY)
+	orderBookBitflyer := bitflyer.GetOrderBook(entity.BTC_JPY)
+	tradesBitflyer := bitflyer.GetRecentTrades(entity.BTC_JPY)
 	orderPriceBitflyer := orderPrice(orderBookBitflyer, tradesBitflyer.RecentTrades(5*time.Minute))
 	fmt.Printf("Determined Order Price at Bitflyer: %.2f [JPY/BTC]\n", orderPriceBitflyer)
 
-	orderBookCoinCheck := coincheck.GetOrderBook(entity.BTC_TO_JPY)
-	tradesCoinCheck := coincheck.GetRecentTrades(entity.BTC_TO_JPY)
+	orderBookCoinCheck := coincheck.GetOrderBook(entity.BTC_JPY)
+	tradesCoinCheck := coincheck.GetRecentTrades(entity.BTC_JPY)
 	orderPriceCoinCheck := orderPrice(orderBookCoinCheck, tradesCoinCheck.RecentTrades(5*time.Minute))
 	fmt.Printf("Determined Order Price at Coincheck: %.2f [JPY/BTC]\n", orderPriceCoinCheck)
 }

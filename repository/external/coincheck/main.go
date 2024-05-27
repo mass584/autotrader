@@ -22,11 +22,11 @@ const (
 
 func getExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {
 	switch exchangePair {
-	case entity.BTC_TO_JPY:
+	case entity.BTC_JPY:
 		return BTC_JPY
-	case entity.ETH_TO_JPY:
+	case entity.ETH_JPY:
 		return NO_DEAL
-	case entity.ETC_TO_JPY:
+	case entity.ETC_JPY:
 		return ETC_JPY
 	default:
 		return NO_DEAL

@@ -23,7 +23,7 @@ func BuildTradeCollectionHelper(trades Trades) entity.TradeCollection {
 		tradeCollection = append(tradeCollection,
 			entity.Trade{
 				ExchangePlace: entity.Coincheck,
-				ExchangePair:  entity.BTC_TO_JPY,
+				ExchangePair:  entity.BTC_JPY,
 				TradeID:       baseTradeID + idx,
 				Price:         trade.Price,
 				Volume:        trade.Volume,
