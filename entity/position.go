@@ -2,22 +2,31 @@ package entity
 
 import "time"
 
+type PositionType int
 type PositionStatus int
 
 // DBに永続化されるので順番を変えないこと
 const (
-	PositionStatusProcessing PositionStatus = iota
-	PositionStatusSuccess
-	PositionStatusFailed
+	PositionTypeLong PositionType = iota
+	PositionTypeShort
+)
+
+// DBに永続化されるので順番を変えないこと
+const (
+	PositionStatusHold PositionStatus = iota
+	PositionStatusClosedByTakeProfit
+	PositionStatusClosedByStopLoss
 )
 
 type Position struct {
 	ID             int
+	PositionType   PositionType
 	PositionStatus PositionStatus
 	ExchangePlace  ExchangePlace
 	ExchangePair   ExchangePair
-	TradeID        int
-	Price          float64
 	Volume         float64
-	Time           time.Time
+	BuyPrice       float64
+	SellPrice      float64
+	BuyTime        time.Time
+	SellTime       time.Time
 }

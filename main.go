@@ -52,6 +52,8 @@ func main() {
 	case "trade_signal":
 		at := time.Date(2023, 3, 1, 10, 0, 0, 0, time.Local)
 		service.CalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, at)
+	case "watch":
+		service.WatchPostionOnCoincheck(db)
 	default:
 		log.Fatal().Msg("Invalid execution mode.")
 		os.Exit(1)

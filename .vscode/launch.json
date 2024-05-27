@@ -30,6 +30,15 @@
             "program": "main.go",
             "env": {},
             "args": ["trade_signal"]
+        },
+        {
+            "name": "watch",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "env": {},
+            "args": ["watch"]
         }
     ]
 }

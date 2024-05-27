@@ -31,3 +31,22 @@ func GetTradesByTimeRange(
 		Find(&tradeCollection)
 	return tradeCollection
 }
+
+func GetTradeByLatestBefore(
+	db *gorm.DB,
+	exchange_place entity.ExchangePlace,
+	exchange_pair entity.ExchangePair,
+	at time.Time,
+) entity.Trade {
+	// ソートに時間がかかりすぎるので、10分前までのデータを取得する
+	timeLeft := at.Add(-10 * time.Minute)
+
+	var trade entity.Trade
+	db.
+		Where("exchange_place = ?", exchange_place).
+		Where("exchange_pair = ?", exchange_pair).
+		Where("? <= time and time <= ?", timeLeft, at).
+		Order("time DESC").
+		First(&trade)
+	return trade
+}
