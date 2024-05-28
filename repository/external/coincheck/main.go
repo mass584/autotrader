@@ -20,7 +20,7 @@ const (
 	NO_DEAL  ExchangePairCode = ""
 )
 
-func getExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {
+func GetExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {
 	switch exchangePair {
 	case entity.BTC_JPY:
 		return BTC_JPY
@@ -34,7 +34,7 @@ func getExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {
 }
 
 func GetOrderBook(exchangePair entity.ExchangePair) entity.OrderBook {
-	code := getExchangePairCode(exchangePair)
+	code := GetExchangePairCode(exchangePair)
 	if code == NO_DEAL {
 		fmt.Println("Error: No deal")
 		return entity.OrderBook{}
@@ -111,7 +111,7 @@ const (
 )
 
 func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
-	code := getExchangePairCode(exchangePair)
+	code := GetExchangePairCode(exchangePair)
 	if code == NO_DEAL {
 		fmt.Println("Error: No deal")
 		return []entity.Trade{}
@@ -199,7 +199,7 @@ type AllTrades struct {
 }
 
 func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.TradeCollection {
-	code := getExchangePairCode(exchangePair)
+	code := GetExchangePairCode(exchangePair)
 	if code == NO_DEAL {
 		fmt.Println("Error: No deal")
 		return entity.TradeCollection{}

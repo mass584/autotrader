@@ -12,6 +12,11 @@ import (
 )
 
 func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) {
+	if coincheck.GetExchangePairCode(exchangePair) == coincheck.NO_DEAL {
+		log.Info().Msgf("Exchange pair %s is not supported by Coincheck.", exchangePair.String())
+		return
+	}
+
 	// スクレイピング履歴の取得
 	scrapingHistories := database.GetScrapingHistoriesByStatus(
 		db,
@@ -52,15 +57,13 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 
 	// スクレイピングの実行
 	log.Info().Msgf("Start scraping trades from Coincheck. ID: %d ~ %d", fromID, toID)
-	count := toID - fromID + 1
-	per := 50 // スクレイピング対象となるAPIの都合上、50件ずつに分割して取得する
-	pageMax := (count+1)/per + 1
-	for page := 0; page < pageMax; page++ {
-		// 実際はIDは通しではなく間が抜けて返ってくるので、同じものを重複取得してしまっており効率が悪くなっている
-		lastId := fromID + page*per + per - 1
+	lastID := toID
+	for lastID >= fromID {
 		time.Sleep(100 * time.Millisecond) // レートリミットに引っかからないように100ミリ秒待つ
-		tradeCollection := coincheck.GetAllTradesByLastId(exchangePair, lastId)
+		log.Info().Msgf("Send request. lastID=%d", lastID)
+		tradeCollection := coincheck.GetAllTradesByLastId(exchangePair, lastID)
 		database.SaveTrades(db, tradeCollection)
+		lastID = tradeCollection.OldestTrade().TradeID
 	}
 	log.Info().Msgf("End scraping trades from Coincheck. ID: %d ~ %d", fromID, toID)
 

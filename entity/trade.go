@@ -29,3 +29,8 @@ func (tc TradeCollection) LatestTrade() Trade {
 	// TradeCollectionはソート済み
 	return tc[0]
 }
+
+func (tc TradeCollection) OldestTrade() Trade {
+	// TradeCollectionはソート済み
+	return tc[len(tc)-1]
+}

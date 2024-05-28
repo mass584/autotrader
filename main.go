@@ -26,7 +26,7 @@ func main() {
 	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
 
 	args := os.Args
-	if len(args) != 2 {
+	if len(args) < 2 {
 		log.Fatal().Msg("Invalid argument.")
 		os.Exit(1)
 	}
@@ -46,7 +46,12 @@ func main() {
 	mode := args[1]
 	switch mode {
 	case "scraping":
-		service.ScrapingTradesFromCoincheck(db, entity.BTC_JPY)
+		pair, err := entity.ExchangePairString(args[2])
+		if err != nil {
+			log.Fatal().Msgf("%v", err)
+			os.Exit(1)
+		}
+		service.ScrapingTradesFromCoincheck(db, pair)
 	case "order_price":
 		service.DetermineOrderPrice()
 	case "trade_signal":
