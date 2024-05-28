@@ -27,6 +27,7 @@ func calculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePa
 	// 過去50日分の取引データを取得する
 	from := signalAt.Add(-50*24*time.Hour - 1*time.Minute)
 	to := signalAt
+	// ここのクエリが重すぎるので何とかする。事前集計が必要っぽい。
 	tradeCollection := database.GetTradesByTimeRange(db, entity.Coincheck, exchangePair, from, to)
 
 	trendFollowSignal := trendFollowingSignal(tradeCollection, signalAt)

@@ -51,6 +51,8 @@ func main() {
 	switch *modePtr {
 	case "scraping":
 		service.ScrapingTradesFromCoincheck(db, pair)
+	case "aggregation":
+		service.Aggregation(db, entity.Coincheck, pair)
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
 	case "optimize":
