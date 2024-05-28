@@ -24,10 +24,10 @@ func GetExchangePairCode(exchangePair entity.ExchangePair) ExchangePairCode {
 	switch exchangePair {
 	case entity.BTC_JPY:
 		return BTC_JPY
-	case entity.ETH_JPY:
-		return NO_DEAL
 	case entity.ETC_JPY:
 		return ETC_JPY
+	case entity.MONA_JPY:
+		return MONA_JPY
 	default:
 		return NO_DEAL
 	}

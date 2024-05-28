@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-const _ExchangePairName = "BTC_JPYETH_JPYETH_BTCETC_JPYXRP_JPYBCH_BTC"
+const _ExchangePairName = "BTC_JPYETH_JPYETH_BTCETC_JPYXRP_JPYBCH_BTCMONA_JPY"
 
-var _ExchangePairIndex = [...]uint8{0, 7, 14, 21, 28, 35, 42}
+var _ExchangePairIndex = [...]uint8{0, 7, 14, 21, 28, 35, 42, 50}
 
-const _ExchangePairLowerName = "btc_jpyeth_jpyeth_btcetc_jpyxrp_jpybch_btc"
+const _ExchangePairLowerName = "btc_jpyeth_jpyeth_btcetc_jpyxrp_jpybch_btcmona_jpy"
 
 func (i ExchangePair) String() string {
 	i -= 1
@@ -31,9 +31,10 @@ func _ExchangePairNoOp() {
 	_ = x[ETC_JPY-(4)]
 	_ = x[XRP_JPY-(5)]
 	_ = x[BCH_BTC-(6)]
+	_ = x[MONA_JPY-(7)]
 }
 
-var _ExchangePairValues = []ExchangePair{BTC_JPY, ETH_JPY, ETH_BTC, ETC_JPY, XRP_JPY, BCH_BTC}
+var _ExchangePairValues = []ExchangePair{BTC_JPY, ETH_JPY, ETH_BTC, ETC_JPY, XRP_JPY, BCH_BTC, MONA_JPY}
 
 var _ExchangePairNameToValueMap = map[string]ExchangePair{
 	_ExchangePairName[0:7]:        BTC_JPY,
@@ -48,6 +49,8 @@ var _ExchangePairNameToValueMap = map[string]ExchangePair{
 	_ExchangePairLowerName[28:35]: XRP_JPY,
 	_ExchangePairName[35:42]:      BCH_BTC,
 	_ExchangePairLowerName[35:42]: BCH_BTC,
+	_ExchangePairName[42:50]:      MONA_JPY,
+	_ExchangePairLowerName[42:50]: MONA_JPY,
 }
 
 var _ExchangePairNames = []string{
@@ -57,6 +60,7 @@ var _ExchangePairNames = []string{
 	_ExchangePairName[21:28],
 	_ExchangePairName[28:35],
 	_ExchangePairName[35:42],
+	_ExchangePairName[42:50],
 }
 
 // ExchangePairString retrieves an enum value from the enum constants string name.

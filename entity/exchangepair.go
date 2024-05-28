@@ -12,4 +12,5 @@ const (
 	ETC_JPY
 	XRP_JPY
 	BCH_BTC
+	MONA_JPY
 )
