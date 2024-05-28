@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io"
 	"os"
 	"time"
@@ -17,7 +18,7 @@ import (
 func main() {
 	logfile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Fatal().Msg("Failed to open log file.")
+		log.Fatal().Msgf("%v", err)
 		os.Exit(1)
 	}
 	defer logfile.Close()
@@ -25,11 +26,9 @@ func main() {
 	multiWriter := io.MultiWriter(logfile, os.Stdout)
 	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
 
-	args := os.Args
-	if len(args) < 2 {
-		log.Fatal().Msg("Invalid argument.")
-		os.Exit(1)
-	}
+	mode := flag.String("mode", "", "実行モード")
+	pair := flag.String("pair", "", "取引ペア")
+	flag.Parse()
 
 	config, err := config.NewConfig()
 	if err != nil {
@@ -43,10 +42,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	mode := args[1]
-	switch mode {
+	switch *mode {
 	case "scraping":
-		pair, err := entity.ExchangePairString(args[2])
+		pair, err := entity.ExchangePairString(*pair)
 		if err != nil {
 			log.Fatal().Msgf("%v", err)
 			os.Exit(1)
