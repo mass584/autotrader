@@ -1,6 +1,6 @@
 {
     "go.formatTool": "gofmt",
-    "go.lintOnSave": "file",
+    "go.lintOnSave": "package",
     "go.lintTool": "golangci-lint",
     "gopls": {
         "ui.semanticTokens": true
