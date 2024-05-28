@@ -51,13 +51,11 @@ func main() {
 	switch *modePtr {
 	case "scraping":
 		service.ScrapingTradesFromCoincheck(db, pair)
-	case "order_price":
-		service.DetermineOrderPriceOnCoincheck(pair)
-	case "trade_signal":
-		at := time.Date(2023, 3, 1, 10, 0, 0, 0, time.Local)
-		service.CalculateTradeSignalOnCoincheck(db, pair, at)
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
+	case "optimize":
+		at := time.Date(2023, 3, 1, 10, 0, 0, 0, time.Local)
+		service.WatchPostionOnCoincheckForOptimize(db, at)
 	default:
 		log.Fatal().Msg("Invalid execution mode.")
 		os.Exit(1)

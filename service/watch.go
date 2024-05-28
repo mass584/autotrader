@@ -87,7 +87,7 @@ func openPosition(db *gorm.DB, time time.Time) {
 	}
 
 	// 新しいポジションを取得するかどうか判定して、そうであればリクエストする
-	trendFollowSignal, _ := CalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, time)
+	trendFollowSignal, _ := calculateTradeSignalOnCoincheck(db, entity.BTC_JPY, time)
 
 	// 一旦はトレンドフォローシグナルだけを見て新しいポジションを取得するかどうか判定しているが、
 	// 実際には複数のシグナルを組み合わせて判定することが望ましい
@@ -119,7 +119,7 @@ func WatchPostionOnCoincheck(db *gorm.DB) {
 	}
 }
 
-func WatchPostionOnCoincheckForOptimization(db *gorm.DB, startFrom time.Time) {
+func WatchPostionOnCoincheckForOptimize(db *gorm.DB, startFrom time.Time) {
 	at := startFrom
 	for {
 		at = at.Add(1 * time.Minute)

@@ -18,7 +18,12 @@ const (
 	Hold Decision = "HOLD"
 )
 
-func CalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, Decision) {
+// テスト用のラッパー
+func TestCalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, Decision) {
+	return calculateTradeSignalOnCoincheck(db, exchangePair, signalAt)
+}
+
+func calculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, Decision) {
 	// 過去50日分の取引データを取得する
 	from := signalAt.Add(-50*24*time.Hour - 1*time.Minute)
 	to := signalAt

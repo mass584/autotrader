@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// このメソッドをよんでいるところはまだないが、実際の自動トレードで指値注文を出す場合に使う
 func DetermineOrderPriceOnCoincheck(exchangePair entity.ExchangePair) float64 {
 	orderBook := coincheck.GetOrderBook(exchangePair)
 	trades := coincheck.GetRecentTrades(exchangePair)
