@@ -26,9 +26,15 @@ func main() {
 	multiWriter := io.MultiWriter(logfile, os.Stdout)
 	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
 
-	mode := flag.String("mode", "", "実行モード")
-	pair := flag.String("pair", "", "取引ペア")
+	modePtr := flag.String("mode", "", "実行モード")
+	pairPtr := flag.String("pair", "BTC_JPY", "取引ペア")
 	flag.Parse()
+
+	pair, err := entity.ExchangePairString(*pairPtr)
+	if err != nil {
+		log.Fatal().Msgf("%v", err)
+		os.Exit(1)
+	}
 
 	config, err := config.NewConfig()
 	if err != nil {
@@ -42,19 +48,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch *mode {
+	switch *modePtr {
 	case "scraping":
-		pair, err := entity.ExchangePairString(*pair)
-		if err != nil {
-			log.Fatal().Msgf("%v", err)
-			os.Exit(1)
-		}
 		service.ScrapingTradesFromCoincheck(db, pair)
 	case "order_price":
-		service.DetermineOrderPrice()
+		service.DetermineOrderPriceOnCoincheck(pair)
 	case "trade_signal":
 		at := time.Date(2023, 3, 1, 10, 0, 0, 0, time.Local)
-		service.CalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, at)
+		service.CalculateTradeSignalOnCoincheck(db, pair, at)
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
 	default:

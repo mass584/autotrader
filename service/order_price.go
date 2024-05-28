@@ -1,25 +1,20 @@
 package service
 
 import (
-	"fmt"
 	"math"
 	"time"
 
 	"github.com/mass584/autotrader/entity"
-	"github.com/mass584/autotrader/repository/external/bitflyer"
 	"github.com/mass584/autotrader/repository/external/coincheck"
+	"github.com/rs/zerolog/log"
 )
 
-func DetermineOrderPrice() {
-	orderBookBitflyer := bitflyer.GetOrderBook(entity.BTC_JPY)
-	tradesBitflyer := bitflyer.GetRecentTrades(entity.BTC_JPY)
-	orderPriceBitflyer := orderPrice(orderBookBitflyer, tradesBitflyer.RecentTrades(5*time.Minute))
-	fmt.Printf("Determined Order Price at Bitflyer: %.2f [JPY/BTC]\n", orderPriceBitflyer)
-
-	orderBookCoinCheck := coincheck.GetOrderBook(entity.BTC_JPY)
-	tradesCoinCheck := coincheck.GetRecentTrades(entity.BTC_JPY)
-	orderPriceCoinCheck := orderPrice(orderBookCoinCheck, tradesCoinCheck.RecentTrades(5*time.Minute))
-	fmt.Printf("Determined Order Price at Coincheck: %.2f [JPY/BTC]\n", orderPriceCoinCheck)
+func DetermineOrderPriceOnCoincheck(exchangePair entity.ExchangePair) float64 {
+	orderBook := coincheck.GetOrderBook(exchangePair)
+	trades := coincheck.GetRecentTrades(exchangePair)
+	orderPrice := orderPrice(orderBook, trades.RecentTrades(5*time.Minute))
+	log.Info().Msgf("Determined Order Price at Coincheck is %.2f [JPY/BTC]", orderPrice)
+	return orderPrice
 }
 
 func orderPrice(orderBook entity.OrderBook, trades entity.TradeCollection) float64 {
