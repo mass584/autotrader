@@ -84,7 +84,7 @@ func openPosition(db *gorm.DB, time time.Time) {
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
 	trade, error := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
 	if error != nil {
-		log.Error().Msg("Failed to get trade data.")
+		log.Warn().Msg("Failed to get trade data.")
 		return
 	}
 
@@ -134,10 +134,11 @@ func WatchPostionOnCoincheck(db *gorm.DB) {
 }
 
 func WatchPostionOnCoincheckForSimulation(db *gorm.DB) {
-	at := time.Date(2023, 10, 1, 10, 0, 0, 0, time.Local)
-	for {
-		at = at.Add(1 * time.Hour)
-		closePositions(db, at)
-		openPosition(db, at)
+	simulationTime := time.Date(2023, 10, 1, 0, 0, 0, 0, time.UTC)
+	simulationEnd := time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)
+	for simulationTime.Before(simulationEnd) {
+		simulationTime = simulationTime.Add(1 * time.Hour)
+		closePositions(db, simulationTime)
+		openPosition(db, simulationTime)
 	}
 }
