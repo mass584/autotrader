@@ -25,9 +25,8 @@ func main() {
 	defer logfile.Close()
 
 	multiWriter := io.MultiWriter(logfile, os.Stdout)
-	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
-
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
 
 	modePtr := flag.String("mode", "", "実行モード")
 	pairPtr := flag.String("pair", "BTC_JPY", "取引ペア")
