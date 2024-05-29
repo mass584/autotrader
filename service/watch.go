@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/mass584/autotrader/entity"
@@ -39,26 +40,26 @@ func closePositions(db *gorm.DB, time time.Time) {
 	// 現在のポジションがクローズ対象かどうが判定して、そうであればクローズする
 	// 一旦はロングポジションだけを考える
 	for _, position := range positions {
-		if currentPrice > position.BuyPrice {
+		if currentPrice > position.BuyPrice.Float64 {
 			// 利益確定条件を満たす場合はポジションをクローズする
-			profit := currentPrice*position.Volume - position.BuyPrice*position.Volume
+			profit := currentPrice*position.Volume - position.BuyPrice.Float64*position.Volume
 			if profit > TAKE_PROFIT_AMOUNT_YEN {
 				// TODO 利益確定の注文リクエストを送信する処理をかく
 				// 実際の取引の場合は、ここでスリッページが発生する可能性があることに注意
 				position.PositionStatus = entity.PositionStatusClosedByTakeProfit
-				position.SellPrice = currentPrice
-				position.SellTime = time
+				position.SellPrice = sql.NullFloat64{Float64: currentPrice, Valid: true}
+				position.SellTime = sql.NullTime{Time: time, Valid: true}
 				database.SavePosition(db, position)
 			}
-		} else if currentPrice < position.BuyPrice {
-			loss := position.BuyPrice*position.Volume - currentPrice*position.Volume
+		} else if currentPrice < position.BuyPrice.Float64 {
+			loss := position.BuyPrice.Float64*position.Volume - currentPrice*position.Volume
 			// 損切り条件を満たす場合はポジションをクローズする
 			if loss > STOP_LOSS_AMOUNT_YEN {
 				// TODO 損切りの注文リクエストを送信する処理をかく
 				// 実際の取引の場合は、ここでスリッページが発生する可能性があることに注意
 				position.PositionStatus = entity.PositionStatusClosedByStopLoss
-				position.SellPrice = currentPrice
-				position.SellTime = time
+				position.SellPrice = sql.NullFloat64{Float64: currentPrice, Valid: true}
+				position.SellTime = sql.NullTime{Time: time, Valid: true}
 				database.SavePosition(db, position)
 			}
 		}
@@ -91,7 +92,7 @@ func openPosition(db *gorm.DB, time time.Time) {
 	// ポジションが資金の上限を超える場合はここで終了
 	var positionSum float64
 	for _, position := range positions {
-		positionSum += position.Volume * position.BuyPrice
+		positionSum += position.Volume * position.BuyPrice.Float64
 	}
 
 	tradeMargin := FUND_MAX_YEN - positionSum
@@ -115,8 +116,8 @@ func openPosition(db *gorm.DB, time time.Time) {
 			ExchangePair:   entity.BTC_JPY,
 			// 一旦は現在価格で注文しているが、実際には板情報を使って指値注文を出すべき
 			Volume:   UNIT_VOLUME_YEN / currentPrice,
-			BuyPrice: currentPrice,
-			BuyTime:  time,
+			BuyPrice: sql.NullFloat64{Float64: currentPrice, Valid: true},
+			BuyTime:  sql.NullTime{Time: time, Valid: true},
 		}
 		database.SavePosition(db, newPosition)
 	}

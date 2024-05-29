@@ -1,6 +1,8 @@
 package entity
 
-import "time"
+import (
+	"database/sql"
+)
 
 type PositionType int
 type PositionStatus int
@@ -25,8 +27,8 @@ type Position struct {
 	ExchangePlace  ExchangePlace
 	ExchangePair   ExchangePair
 	Volume         float64
-	BuyPrice       float64
-	SellPrice      float64
-	BuyTime        time.Time
-	SellTime       time.Time
+	BuyPrice       sql.NullFloat64
+	SellPrice      sql.NullFloat64
+	BuyTime        sql.NullTime
+	SellTime       sql.NullTime
 }
