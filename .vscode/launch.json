@@ -11,25 +11,16 @@
             "mode": "debug",
             "program": "main.go",
             "env": {},
-            "args": ["scraping"]
+            "args": ["--mode=scraping", "--pair=BTC_JPY"]
         },
         {
-            "name": "order_price",
+            "name": "aggregation",
             "type": "go",
             "request": "launch",
             "mode": "debug",
             "program": "main.go",
             "env": {},
-            "args": ["order_price"]
-        },
-        {
-            "name": "trade_signal",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "main.go",
-            "env": {},
-            "args": ["trade_signal"]
+            "args": ["--mode=aggregation", "--pair=BTC_JPY"]
         },
         {
             "name": "watch",
@@ -38,7 +29,16 @@
             "mode": "debug",
             "program": "main.go",
             "env": {},
-            "args": ["watch"]
+            "args": ["--mode=watch", "--pair=BTC_JPY"]
+        },
+        {
+            "name": "optimize",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "env": {},
+            "args": ["--mode=optimize", "--pair=BTC_JPY"]
         }
     ]
 }

@@ -80,7 +80,7 @@ func calculateSimpleMovingAverage2(
 	trades := append(tradesLeft, tradesRight...)
 
 	// 集計済みかどうか確認
-	days := int(toDate.Sub(fromDate).Hours() / 24)
+	days := int(toDate.Sub(fromDate).Hours()/24) + 1
 	if days < 0 {
 		days = 0
 	}
@@ -187,7 +187,11 @@ func meanReversionSignal2(
 		return Hold
 	}
 
-	trade := database.GetTradeByLatestBefore(db, exchangePlace, exchangePair, signalAt)
+	trade, error := database.GetTradeByLatestBefore(db, exchangePlace, exchangePair, signalAt)
+	if error != nil {
+		return Hold
+	}
+
 	currentPrice := trade.Price
 
 	if currentPrice < sma {

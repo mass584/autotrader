@@ -37,7 +37,7 @@ func GetTradeByLatestBefore(
 	exchange_place entity.ExchangePlace,
 	exchange_pair entity.ExchangePair,
 	at time.Time,
-) entity.Trade {
+) (*entity.Trade, error) {
 	// ソートに時間がかかりすぎるので、10分前までのデータを取得する
 	timeLeft := at.Add(-10 * time.Minute)
 
@@ -48,5 +48,10 @@ func GetTradeByLatestBefore(
 		Where("? <= time and time <= ?", timeLeft, at).
 		Order("time DESC").
 		First(&trade)
-	return trade
+
+	if trade.ID == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return &trade, nil
 }

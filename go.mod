@@ -6,7 +6,6 @@ require (
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-migrate/migrate/v4 v4.17.1
-	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
 	gorm.io/driver/mysql v1.5.6
 	gorm.io/gorm v1.25.7

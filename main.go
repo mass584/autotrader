@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
@@ -42,7 +43,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := gorm.Open(mysql.Open(config.DatabaseURL()))
+	db, err := gorm.Open(mysql.Open(config.DatabaseURL()), &gorm.Config{
+		// 一旦サイレントにする。本当はzerologを渡したいがインターフェイスが合わなかった。
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		log.Fatal().Msg("Failed to connect database.")
 		os.Exit(1)
@@ -56,7 +60,7 @@ func main() {
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
 	case "optimize":
-		at := time.Date(2023, 3, 1, 10, 0, 0, 0, time.Local)
+		at := time.Date(2023, 10, 1, 10, 0, 0, 0, time.Local)
 		service.WatchPostionOnCoincheckForOptimize(db, at)
 	default:
 		log.Fatal().Msg("Invalid execution mode.")

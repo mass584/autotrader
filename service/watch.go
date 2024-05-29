@@ -5,6 +5,7 @@ import (
 
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/repository/database"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +28,13 @@ func closePositions(db *gorm.DB, time time.Time) {
 	// 取引モデルのパラメータチューニングの際は、過去の指定日時の取引価格を取得するため、データベースから価格をひいている。
 	// その際、正しく取得するためにはスクレイピング済みである必要があることに注意。
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
-	currentPrice := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time).Price
+	trade, error := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
+	if error != nil {
+		log.Error().Msg("Failed to get trade data.")
+		return
+	}
+
+	currentPrice := trade.Price
 
 	// 現在のポジションがクローズ対象かどうが判定して、そうであればクローズする
 	// 一旦はロングポジションだけを考える
@@ -73,7 +80,13 @@ func openPosition(db *gorm.DB, time time.Time) {
 	// 取引モデルのパラメータチューニングの際は、過去の指定日時の取引価格を取得するため、データベースから価格をひいている。
 	// その際、正しく取得するためにはスクレイピング済みである必要があることに注意。
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
-	currentPrice := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time).Price
+	trade, error := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
+	if error != nil {
+		log.Error().Msg("Failed to get trade data.")
+		return
+	}
+
+	currentPrice := trade.Price
 
 	// ポジションが資金の上限を超える場合はここで終了
 	var positionSum float64
