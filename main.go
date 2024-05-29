@@ -62,7 +62,11 @@ func main() {
 			os.Exit(1)
 		}
 	case "aggregation":
-		service.AggregationAllCoincheck(db, pair)
+		err := service.AggregationAllCoincheck(db, pair)
+		if err != nil {
+			log.Error().Stack().Err(err).Send()
+			os.Exit(1)
+		}
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
 	case "watch_simulation":

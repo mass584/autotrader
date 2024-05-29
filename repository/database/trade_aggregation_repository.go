@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/mass584/autotrader/entity"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -22,13 +23,17 @@ func GenerateNewAggregation(
 
 	from := date
 	to := date.Add(24 * time.Hour)
-	db.
+	err := db.
 		Model(&entity.Trade{}).
 		Where("exchange_place = ?", exchangePlace).
 		Where("exchange_pair = ?", exchangePair).
 		Where("? <= time and time < ?", from, to).
 		Select("sum(price)/count(*) as average_price, count(*) as total_count, sum(price*volume) as total_transaction").
-		Scan(&result)
+		Scan(&result).Error
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	if result.TotalCount == 0 {
 		return &entity.TradeAggregation{
@@ -51,25 +56,39 @@ func GenerateNewAggregation(
 	}, nil
 }
 
-func SaveTradeAggregation(db *gorm.DB, tradeAggregation entity.TradeAggregation) {
-	db.Clauses(clause.OnConflict{
+func SaveTradeAggregation(
+	db *gorm.DB,
+	tradeAggregation entity.TradeAggregation,
+) (*entity.TradeAggregation, error) {
+	result := db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "exchange_place"}, {Name: "exchange_pair"}, {Name: "aggregate_date"}},
 		DoUpdates: clause.AssignmentColumns([]string{"average_price", "total_count", "total_transaction"}),
 	}).Create(&tradeAggregation)
+
+	if result.Error != nil {
+		return nil, errors.WithStack(result.Error)
+	}
+
+	return &tradeAggregation, nil
 }
 
 func GetAllTradeAggregations(
 	db *gorm.DB,
 	exchange_place entity.ExchangePlace,
 	exchange_pair entity.ExchangePair,
-) []entity.TradeAggregation {
+) ([]entity.TradeAggregation, error) {
 	var tradeAggregations []entity.TradeAggregation
-	db.
+	result := db.
 		Where("exchange_place = ?", exchange_place).
 		Where("exchange_pair = ?", exchange_pair).
 		Order("aggregate_date DESC").
 		Find(&tradeAggregations)
-	return tradeAggregations
+
+	if result.Error != nil {
+		return nil, errors.WithStack(result.Error)
+	}
+
+	return tradeAggregations, nil
 }
 
 func GetTradeAggregationsByDateRange(
