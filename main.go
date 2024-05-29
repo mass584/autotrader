@@ -4,7 +4,6 @@ import (
 	"flag"
 	"io"
 	"os"
-	"time"
 
 	"github.com/mass584/autotrader/config"
 	"github.com/mass584/autotrader/entity"
@@ -52,16 +51,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 今のところはCoincheckにしか対応していない
 	switch *modePtr {
 	case "scraping":
 		service.ScrapingTradesFromCoincheck(db, pair)
 	case "aggregation":
-		service.AggregationAll(db, entity.Coincheck, pair)
+		service.AggregationAllCoincheck(db, pair)
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
 	case "watch_simulation":
-		at := time.Date(2023, 10, 1, 10, 0, 0, 0, time.Local)
-		service.WatchPostionOnCoincheckForSimulation(db, at)
+		service.WatchPostionOnCoincheckForSimulation(db)
 	default:
 		log.Fatal().Msg("Invalid execution mode.")
 		os.Exit(1)

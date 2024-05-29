@@ -32,11 +32,7 @@ func Aggregation(
 	}
 }
 
-func AggregationAll(
-	db *gorm.DB,
-	exchangePlace entity.ExchangePlace,
-	exchangePair entity.ExchangePair,
-) {
+func AggregationAllCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) {
 	var from time.Time
 	tradeAggregations := database.GetAllTradeAggregations(db, entity.Coincheck, exchangePair)
 	if len(tradeAggregations) == 0 {
@@ -49,5 +45,5 @@ func AggregationAll(
 	year, month, day := yesterday.Date()
 	to := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 
-	Aggregation(db, exchangePlace, exchangePair, from, to)
+	Aggregation(db, entity.Coincheck, exchangePair, from, to)
 }

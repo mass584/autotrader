@@ -133,8 +133,8 @@ func WatchPostionOnCoincheck(db *gorm.DB) {
 	}
 }
 
-func WatchPostionOnCoincheckForSimulation(db *gorm.DB, startFrom time.Time) {
-	at := startFrom
+func WatchPostionOnCoincheckForSimulation(db *gorm.DB) {
+	at := time.Date(2023, 10, 1, 10, 0, 0, 0, time.Local)
 	for {
 		at = at.Add(1 * time.Hour)
 		closePositions(db, at)
