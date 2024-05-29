@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/mass584/autotrader/entity"
-	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -32,7 +31,14 @@ func GenerateNewAggregation(
 		Scan(&result)
 
 	if result.TotalCount == 0 {
-		return nil, errors.New("No trade data.")
+		return &entity.TradeAggregation{
+			ExchangePlace:    exchangePlace,
+			ExchangePair:     exchangePair,
+			AggregateDate:    date,
+			AveragePrice:     0,
+			TotalCount:       0,
+			TotalTransaction: 0,
+		}, nil
 	}
 
 	return &entity.TradeAggregation{
@@ -66,7 +72,7 @@ func GetAllTradeAggregations(
 	return tradeAggregations
 }
 
-func GetTradeAggregationsByTimeRange(
+func GetTradeAggregationsByDateRange(
 	db *gorm.DB,
 	exchange_place entity.ExchangePlace,
 	exchange_pair entity.ExchangePair,
@@ -77,7 +83,7 @@ func GetTradeAggregationsByTimeRange(
 	db.
 		Where("exchange_place = ?", exchange_place).
 		Where("exchange_pair = ?", exchange_pair).
-		Where("? <= time and time <= ?", from, to).
+		Where("? <= aggregate_date and aggregate_date <= ?", from.Format("2006-01-02"), to.Format("2006-01-02")).
 		Order("aggregate_date DESC").
 		Find(&tradeAggregations)
 

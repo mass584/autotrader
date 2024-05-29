@@ -8,4 +8,6 @@ import (
 func DatabaseCleaner(db *gorm.DB) {
 	db.Where("1 = 1").Delete(&entity.ScrapingHistory{})
 	db.Where("1 = 1").Delete(&entity.Trade{})
+	db.Where("1 = 1").Delete(&entity.TradeAggregation{})
+	db.Where("1 = 1").Delete(&entity.Position{})
 }

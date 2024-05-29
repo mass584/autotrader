@@ -9,22 +9,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func Aggregation(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair) {
-	tradeAggregations := database.GetAllTradeAggregations(db, exchangePlace, exchangePair)
-
-	var startDate time.Time
-	if len(tradeAggregations) == 0 {
-		startDate = time.Date(2023, 2, 23, 0, 0, 0, 0, time.UTC)
-	} else {
-		startDate = tradeAggregations[0].AggregateDate
-	}
-
-	now := time.Now().UTC()
-	year, month, day := now.Date()
-	today := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-
+func Aggregation(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+	aggregateFrom time.Time,
+	aggregateTo time.Time,
+) {
+	startDate := aggregateFrom
 	for {
-		if !startDate.Before(today) {
+		if startDate.After(aggregateTo) {
 			log.Info().Msg("Aggregation is completed.")
 			break
 		}
@@ -36,4 +30,24 @@ func Aggregation(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair e
 		database.SaveTradeAggregation(db, *newTradeAggregation)
 		startDate = startDate.Add(24 * time.Hour)
 	}
+}
+
+func AggregationAll(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+) {
+	var from time.Time
+	tradeAggregations := database.GetAllTradeAggregations(db, entity.Coincheck, exchangePair)
+	if len(tradeAggregations) == 0 {
+		from = time.Date(2023, 2, 23, 0, 0, 0, 0, time.UTC)
+	} else {
+		from = tradeAggregations[0].AggregateDate
+	}
+
+	now := time.Now().UTC()
+	year, month, day := now.Date()
+	to := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+
+	Aggregation(db, exchangePlace, exchangePair, from, to)
 }

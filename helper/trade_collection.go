@@ -5,6 +5,7 @@ import (
 
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/repository/database"
+	"github.com/mass584/autotrader/service"
 	"gorm.io/gorm"
 )
 
@@ -37,4 +38,20 @@ func BuildTradeCollectionHelper(trades Trades) entity.TradeCollection {
 
 func InsertTradeCollectionHelper(db *gorm.DB, tradeCollection entity.TradeCollection) {
 	database.SaveTrades(db, tradeCollection)
+}
+
+func AggregateHelper(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+	aggregateFrom time.Time,
+	aggregateTo time.Time,
+) {
+	service.Aggregation(
+		db,
+		exchangePlace,
+		exchangePair,
+		aggregateFrom,
+		aggregateTo,
+	)
 }

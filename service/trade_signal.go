@@ -24,16 +24,10 @@ func TestCalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.Exchan
 }
 
 func calculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, Decision) {
-	// 過去50日分の取引データを取得する
-	from := signalAt.Add(-50*24*time.Hour - 1*time.Minute)
-	to := signalAt
-	// ここのクエリが重すぎるので何とかする。事前集計が必要っぽい。
-	tradeCollection := database.GetTradesByTimeRange(db, entity.Coincheck, exchangePair, from, to)
-
-	trendFollowSignal := trendFollowingSignal(tradeCollection, signalAt)
+	trendFollowSignal := trendFollowingSignal2(db, entity.Coincheck, exchangePair, signalAt)
 	log.Info().Msgf("TrandFollowSignal is: %s\n", trendFollowSignal)
 
-	meanReversionSignal := meanReversionSignal(tradeCollection, signalAt)
+	meanReversionSignal := meanReversionSignal2(db, entity.Coincheck, exchangePair, signalAt)
 	log.Info().Msgf("MeanReversionSignal is: %s\n", meanReversionSignal)
 
 	// 一旦、トレンドフォローシグナルとミーンリバージョンシグナルを両方返しておく。
@@ -41,6 +35,7 @@ func calculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePa
 	return trendFollowSignal, meanReversionSignal
 }
 
+//nolint:golint,unused
 func calculateSimpleMovingAverage(trades entity.TradeCollection, signalAt time.Time, period time.Duration) (float64, error) {
 	cutoff := signalAt.Add(-period)
 
@@ -62,7 +57,61 @@ func calculateSimpleMovingAverage(trades entity.TradeCollection, signalAt time.T
 	return priceSum / float64(len(filteredTrades)), nil
 }
 
+// 指定した期間で集計対象期間を利用できる場合、集計結果を参照する
+// 集計結果が欠落している場合はエラーを返す
+func calculateSimpleMovingAverage2(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+	signalAt time.Time, // 期間の右端
+	term time.Duration, // 期間の長さ
+) (float64, error) {
+	fromDatetime := signalAt.Add(-1 * term)
+	tmp := fromDatetime.Add(24 * time.Hour) // 左端の24時間後
+	fromDate := time.Date(tmp.Year(), tmp.Month(), tmp.Day(), 0, 0, 0, 0, time.UTC)
+
+	toDatetime := signalAt
+	toDate := time.Date(toDatetime.Year(), toDatetime.Month(), toDatetime.Day(), 0, 0, 0, 0, time.UTC)
+
+	// 集計はUTCの0時を境界とした1日単位で行われているので、左右の中途半端な領域はオンデマンドで集計しなおす
+	aggregations := database.GetTradeAggregationsByDateRange(db, exchangePlace, exchangePair, fromDate, toDate)
+	tradesLeft := database.GetTradesByTimeRange(db, exchangePlace, exchangePair, fromDatetime, fromDate)
+	tradesRight := database.GetTradesByTimeRange(db, exchangePlace, exchangePair, toDate, fromDatetime)
+	trades := append(tradesLeft, tradesRight...)
+
+	// 集計済みかどうか確認
+	days := int(toDate.Sub(fromDate).Hours() / 24)
+	if days < 0 {
+		days = 0
+	}
+
+	if days != len(aggregations) {
+		return 0, errors.New("Aggregation is not finished")
+	}
+
+	var totalTransaction float64
+	var totalCount int
+
+	for _, aggregation := range aggregations {
+		totalTransaction += aggregation.TotalTransaction
+		totalCount += aggregation.TotalCount
+	}
+
+	for _, trade := range trades {
+		totalTransaction += trade.Price * trade.Volume
+		totalCount += 1
+	}
+
+	if totalCount == 0 {
+		return 0, errors.New("No trades in the period")
+	}
+
+	return totalTransaction / float64(totalCount), nil
+}
+
 // 一般的なパラメータとして、短期移動平均と長期移動平均の期間を10日と50日とする
+//
+//nolint:golint,unused
 func trendFollowingSignal(tradeCollection entity.TradeCollection, signalAt time.Time) Decision {
 	shortSMA, error := calculateSimpleMovingAverage(tradeCollection, signalAt, 10*24*time.Hour)
 	if error != nil {
@@ -81,7 +130,36 @@ func trendFollowingSignal(tradeCollection entity.TradeCollection, signalAt time.
 	return Hold
 }
 
+func trendFollowingSignal2(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+	signalAt time.Time,
+) Decision {
+	// 過去10日分の取引データを取得する
+	shortSMA, error := calculateSimpleMovingAverage2(db, exchangePlace, exchangePair, signalAt, 10*24*time.Hour)
+	if error != nil {
+		log.Warn().Msgf("%v", error)
+		return Hold
+	}
+	// 過去50日分の取引データを取得する
+	longSMA, error := calculateSimpleMovingAverage2(db, exchangePlace, exchangePair, signalAt, 50*24*time.Hour)
+	if error != nil {
+		//log.Warn().Msgf("%v", error)
+		return Hold
+	}
+
+	if shortSMA > longSMA {
+		return Buy
+	} else if shortSMA < longSMA {
+		return Sell
+	}
+	return Hold
+}
+
 // どれくらいの期間での単純移動平均を取るかのパラメータチューニングが必要
+//
+//nolint:golint,unused
 func meanReversionSignal(tradeCollection entity.TradeCollection, signalAt time.Time) Decision {
 	sma, error := calculateSimpleMovingAverage(tradeCollection, signalAt, 10*time.Minute)
 	if error != nil {
@@ -89,6 +167,28 @@ func meanReversionSignal(tradeCollection entity.TradeCollection, signalAt time.T
 	}
 
 	currentPrice := tradeCollection.LatestTrade().Price
+
+	if currentPrice < sma {
+		return Buy
+	} else if currentPrice > sma {
+		return Sell
+	}
+	return Hold
+}
+
+func meanReversionSignal2(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+	signalAt time.Time,
+) Decision {
+	sma, error := calculateSimpleMovingAverage2(db, exchangePlace, exchangePair, signalAt, 10*time.Minute)
+	if error != nil {
+		return Hold
+	}
+
+	trade := database.GetTradeByLatestBefore(db, exchangePlace, exchangePair, signalAt)
+	currentPrice := trade.Price
 
 	if currentPrice < sma {
 		return Buy

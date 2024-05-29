@@ -52,7 +52,7 @@ func main() {
 	case "scraping":
 		service.ScrapingTradesFromCoincheck(db, pair)
 	case "aggregation":
-		service.Aggregation(db, entity.Coincheck, pair)
+		service.AggregationAll(db, entity.Coincheck, pair)
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
 	case "optimize":

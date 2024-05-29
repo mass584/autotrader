@@ -162,6 +162,12 @@ func TestCalculateTradeSignalOnCoincheck_TrendFollow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// テストデータの保存
 			helper.InsertTradeCollectionHelper(db, tt.args.tradeCollection)
+			// テストデータの集計
+			fromTime := tt.args.tradeCollection[len(tt.args.tradeCollection)-1].Time
+			fromDate := time.Date(fromTime.Year(), fromTime.Month(), fromTime.Day(), 0, 0, 0, 0, time.Local)
+			toTime := tt.args.signalAt
+			toDate := time.Date(toTime.Year(), toTime.Month(), toTime.Day(), 0, 0, 0, 0, time.Local)
+			helper.AggregateHelper(db, entity.Coincheck, entity.BTC_JPY, fromDate, toDate)
 			defer func() {
 				helper.DatabaseCleaner(db)
 			}()
