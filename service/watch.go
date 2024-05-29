@@ -31,7 +31,8 @@ func closePositions(db *gorm.DB, time time.Time) {
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
 	trade, error := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
 	if error != nil {
-		log.Error().Msg("Failed to get trade data.")
+		// 10分間取引がない場合は取得できなく、エラーとなる
+		log.Warn().Msg("Failed to get trade data.")
 		return
 	}
 
