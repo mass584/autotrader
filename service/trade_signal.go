@@ -18,20 +18,6 @@ const (
 	Hold Decision = "HOLD"
 )
 
-// テスト用のラッパー
-func TestCalculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, Decision) {
-	return calculateTradeSignalOnCoincheck(db, exchangePair, signalAt)
-}
-
-func calculateTradeSignalOnCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, Decision) {
-	trendFollowSignal := trendFollowingSignal(db, entity.Coincheck, exchangePair, signalAt)
-	meanReversionSignal := meanReversionSignal(db, entity.Coincheck, exchangePair, signalAt)
-
-	// 一旦、トレンドフォローシグナルとミーンリバージョンシグナルを両方返しておく。
-	// 実際は、これらの相関に応じて1つの決定値を返すように、何らかのルールを科す必要がある。
-	return trendFollowSignal, meanReversionSignal
-}
-
 // 指定した期間で集計対象期間を利用できる場合、集計結果を参照する
 // 集計結果が欠落している場合はエラーを返す
 func calculateSimpleMovingAverage(
@@ -112,6 +98,10 @@ func trendFollowingSignal(
 	return Hold
 }
 
+func TestTrendFollowingSignal(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair, signalAt time.Time) Decision {
+	return trendFollowingSignal(db, exchangePlace, exchangePair, signalAt)
+}
+
 // どれくらいの期間での単純移動平均を取るかのパラメータチューニングが必要
 func meanReversionSignal(
 	db *gorm.DB,
@@ -137,4 +127,8 @@ func meanReversionSignal(
 		return Sell
 	}
 	return Hold
+}
+
+func TestMeanReversionSignal(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair, signalAt time.Time) Decision {
+	return meanReversionSignal(db, exchangePlace, exchangePair, signalAt)
 }

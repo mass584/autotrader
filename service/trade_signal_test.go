@@ -9,7 +9,7 @@ import (
 	"github.com/mass584/autotrader/service"
 )
 
-func TestCalculateTradeSignalOnCoincheck_TrendFollow(t *testing.T) {
+func TestTrendFollowingSignal(t *testing.T) {
 	type args struct {
 		signalAt        time.Time
 		tradeCollection entity.TradeCollection
@@ -172,7 +172,7 @@ func TestCalculateTradeSignalOnCoincheck_TrendFollow(t *testing.T) {
 				helper.DatabaseCleaner(db)
 			}()
 
-			result, _ := service.TestCalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, tt.args.signalAt)
+			result := service.TestTrendFollowingSignal(db, entity.Coincheck, entity.BTC_JPY, tt.args.signalAt)
 			if result != tt.want {
 				t.Errorf("result = %v, want = %v", result, tt.want)
 			}
@@ -180,7 +180,7 @@ func TestCalculateTradeSignalOnCoincheck_TrendFollow(t *testing.T) {
 	}
 }
 
-func TestCalculateTradeSignalOnCoincheck_MeanReversion(t *testing.T) {
+func TestMeanReversionSignal(t *testing.T) {
 	type args struct {
 		signalAt        time.Time
 		tradeCollection entity.TradeCollection
@@ -259,7 +259,7 @@ func TestCalculateTradeSignalOnCoincheck_MeanReversion(t *testing.T) {
 				helper.DatabaseCleaner(db)
 			}()
 
-			_, result := service.TestCalculateTradeSignalOnCoincheck(db, entity.BTC_JPY, tt.args.signalAt)
+			result := service.TestMeanReversionSignal(db, entity.Coincheck, entity.BTC_JPY, tt.args.signalAt)
 			if result != tt.want {
 				t.Errorf("result = %v, want = %v", result, tt.want)
 			}
