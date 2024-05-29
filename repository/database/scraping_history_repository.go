@@ -17,7 +17,7 @@ func SaveScrapingHistory(
 	}).Create(&scrapingHistory)
 
 	if result.Error != nil {
-		return nil, errors.Cause(result.Error)
+		return nil, errors.WithStack(result.Error)
 	}
 
 	return &scrapingHistory, nil
@@ -37,7 +37,7 @@ func GetScrapingHistoriesByStatus(
 		Find(&scrapingHistories)
 
 	if result.Error != nil {
-		return nil, errors.Cause(result.Error)
+		return nil, errors.WithStack(result.Error)
 	}
 	return scrapingHistories, nil
 }

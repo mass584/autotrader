@@ -202,24 +202,24 @@ type AllTrades struct {
 func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) (entity.TradeCollection, error) {
 	if GetExchangePairCode(exchangePair) == NO_DEAL {
 		err := fmt.Errorf("Exchange pair %s is not supported by Coincheck.", exchangePair.String())
-		return nil, errors.Cause(err)
+		return nil, errors.WithStack(err)
 	}
 
 	query := "pair=" + string(GetExchangePairCode(exchangePair)) + "&last_id=" + strconv.Itoa(lastId+1)
 	resp, err := http.Get("https://coincheck.com/ja/exchange/orders/completes?" + query)
 	if err != nil {
-		return nil, errors.Cause(err)
+		return nil, errors.WithStack(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("Status code %d", resp.StatusCode)
-		return nil, errors.Cause(err)
+		return nil, errors.WithStack(err)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Cause(err)
+		return nil, errors.WithStack(err)
 	}
 
 	var mappedResp struct {
@@ -234,7 +234,7 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) (entity.
 
 	err = json.Unmarshal(body, &mappedResp)
 	if err != nil {
-		return nil, errors.Cause(err)
+		return nil, errors.WithStack(err)
 	}
 
 	var trades entity.TradeCollection
@@ -242,17 +242,17 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) (entity.
 
 		time, err := time.Parse(time.RFC3339, complete.CreatedAt)
 		if err != nil {
-			return nil, errors.Cause(err)
+			return nil, errors.WithStack(err)
 		}
 
 		price, err := strconv.ParseFloat(complete.Rate, 64)
 		if err != nil {
-			return nil, errors.Cause(err)
+			return nil, errors.WithStack(err)
 		}
 
 		volume, err := strconv.ParseFloat(complete.Amount, 64)
 		if err != nil {
-			return nil, errors.Cause(err)
+			return nil, errors.WithStack(err)
 		}
 
 		trades = append(

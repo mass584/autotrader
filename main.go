@@ -58,7 +58,7 @@ func main() {
 	case "scraping":
 		err := service.ScrapingTradesFromCoincheck(db, pair)
 		if err != nil {
-			log.Error().Caller().Err(err).Send()
+			log.Error().Stack().Err(err).Send()
 			os.Exit(1)
 		}
 	case "aggregation":

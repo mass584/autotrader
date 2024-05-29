@@ -16,7 +16,7 @@ func SaveTrades(db *gorm.DB, tradeCollection entity.TradeCollection) (entity.Tra
 	}).Create(&tradeCollection)
 
 	if result.Error != nil {
-		return nil, errors.Cause(result.Error)
+		return nil, errors.WithStack(result.Error)
 	}
 
 	return tradeCollection, nil
