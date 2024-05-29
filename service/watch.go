@@ -133,10 +133,10 @@ func WatchPostionOnCoincheck(db *gorm.DB) {
 	}
 }
 
-func WatchPostionOnCoincheckForOptimize(db *gorm.DB, startFrom time.Time) {
+func WatchPostionOnCoincheckForSimulation(db *gorm.DB, startFrom time.Time) {
 	at := startFrom
 	for {
-		at = at.Add(1 * time.Minute)
+		at = at.Add(1 * time.Hour)
 		closePositions(db, at)
 		openPosition(db, at)
 	}

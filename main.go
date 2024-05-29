@@ -59,9 +59,9 @@ func main() {
 		service.AggregationAll(db, entity.Coincheck, pair)
 	case "watch":
 		service.WatchPostionOnCoincheck(db)
-	case "optimize":
+	case "watch_simulation":
 		at := time.Date(2023, 10, 1, 10, 0, 0, 0, time.Local)
-		service.WatchPostionOnCoincheckForOptimize(db, at)
+		service.WatchPostionOnCoincheckForSimulation(db, at)
 	default:
 		log.Fatal().Msg("Invalid execution mode.")
 		os.Exit(1)
