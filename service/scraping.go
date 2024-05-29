@@ -11,19 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) {
-	if coincheck.GetExchangePairCode(exchangePair) == coincheck.NO_DEAL {
-		log.Info().Msgf("Exchange pair %s is not supported by Coincheck.", exchangePair.String())
-		return
-	}
-
+func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) error {
 	// スクレイピング履歴の取得
-	scrapingHistories := database.GetScrapingHistoriesByStatus(
+	scrapingHistories, err := database.GetScrapingHistoriesByStatus(
 		db,
 		entity.Coincheck,
 		exchangePair,
 		entity.ScrapingStatusSuccess,
 	)
+	if err != nil {
+		return err
+	}
+
 	sort.Slice(scrapingHistories, func(a, b int) bool {
 		// 先頭が最新の取引履歴になるように、FromIDが大きい順に並べる
 		return scrapingHistories[a].FromID > scrapingHistories[b].FromID
@@ -43,30 +42,66 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 	toID := fromID + 100000 - 1
 
 	// スクレイピング履歴の作成
-	tradeFrom := coincheck.GetAllTradesByLastId(exchangePair, fromID).LatestTrade()
-	tradeTo := coincheck.GetAllTradesByLastId(exchangePair, toID).LatestTrade()
-	scrapingHistory := entity.ScrapingHistory{
-		ExchangePlace: entity.Coincheck,
-		ExchangePair:  exchangePair,
-		FromID:        tradeFrom.TradeID,
-		ToID:          tradeTo.TradeID,
-		FromTime:      tradeFrom.Time,
-		ToTime:        tradeTo.Time,
+	var tradeCollection entity.TradeCollection
+	tradeCollection, err = coincheck.GetAllTradesByLastId(exchangePair, fromID)
+	if err != nil {
+		return err
 	}
-	history := database.CreateScrapingHistory(db, scrapingHistory)
+	tradeFrom := tradeCollection.LatestTrade()
+
+	tradeCollection, err = coincheck.GetAllTradesByLastId(exchangePair, toID)
+	if err != nil {
+		return err
+	}
+	tradeTo := tradeCollection.LatestTrade()
+
+	scrapingHistory, err := database.SaveScrapingHistory(
+		db,
+		entity.ScrapingHistory{
+			ExchangePlace: entity.Coincheck,
+			ExchangePair:  exchangePair,
+			FromID:        tradeFrom.TradeID,
+			ToID:          tradeTo.TradeID,
+			FromTime:      tradeFrom.Time,
+			ToTime:        tradeTo.Time,
+		})
+	if err != nil {
+		return err
+	}
 
 	// スクレイピングの実行
-	log.Info().Msgf("Start scraping trades from Coincheck. ID: %d ~ %d", fromID, toID)
+	failed := false
 	lastID := toID
 	for lastID >= fromID {
 		time.Sleep(100 * time.Millisecond) // レートリミットに引っかからないように100ミリ秒待つ
-		log.Info().Msgf("Send request. lastID=%d", lastID)
-		tradeCollection := coincheck.GetAllTradesByLastId(exchangePair, lastID)
-		database.SaveTrades(db, tradeCollection)
+
+		tradeCollection, err := coincheck.GetAllTradesByLastId(exchangePair, lastID)
+		if err != nil {
+			failed = true
+			log.Warn().Err(err).Msgf("Failed to get trades from Coincheck. lastID=%d", lastID)
+			continue
+		}
+
+		_, err = database.SaveTrades(db, tradeCollection)
+		if err != nil {
+			failed = true
+			log.Warn().Err(err).Msgf("Failed to save trades. lastID=%d", lastID)
+			continue
+		}
+
 		lastID = tradeCollection.OldestTrade().TradeID
 	}
-	log.Info().Msgf("End scraping trades from Coincheck. ID: %d ~ %d", fromID, toID)
 
 	// スクレイピングステータスの更新
-	database.UpdateScrapingHistoryStatus(db, history, entity.ScrapingStatusSuccess)
+	if failed {
+		scrapingHistory.ScrapingStatus = entity.ScrapingStatusFailed
+	} else {
+		scrapingHistory.ScrapingStatus = entity.ScrapingStatusSuccess
+	}
+	_, err = database.SaveScrapingHistory(db, *scrapingHistory)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

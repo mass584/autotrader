@@ -2,19 +2,25 @@ package database
 
 import (
 	"github.com/mass584/autotrader/entity"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-func CreateScrapingHistory(db *gorm.DB, scrapingHistory entity.ScrapingHistory) entity.ScrapingHistory {
-	scrapingHistory.ScrapingStatus = entity.ScrapingStatusProcessing
-	db.Create(&scrapingHistory)
-	return scrapingHistory
-}
+func SaveScrapingHistory(
+	db *gorm.DB,
+	scrapingHistory entity.ScrapingHistory,
+) (*entity.ScrapingHistory, error) {
+	result := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"scraping_status"}),
+	}).Create(&scrapingHistory)
 
-func UpdateScrapingHistoryStatus(db *gorm.DB, scrapingHistory entity.ScrapingHistory, status entity.ScrapingStatus) entity.ScrapingHistory {
-	scrapingHistory.ScrapingStatus = status
-	db.Save(&scrapingHistory)
-	return scrapingHistory
+	if result.Error != nil {
+		return nil, errors.Cause(result.Error)
+	}
+
+	return &scrapingHistory, nil
 }
 
 func GetScrapingHistoriesByStatus(
@@ -22,12 +28,16 @@ func GetScrapingHistoriesByStatus(
 	exchange_place entity.ExchangePlace,
 	exchange_pair entity.ExchangePair,
 	status entity.ScrapingStatus,
-) []entity.ScrapingHistory {
+) ([]entity.ScrapingHistory, error) {
 	var scrapingHistories []entity.ScrapingHistory
-	db.
+	result := db.
 		Where("exchange_place = ?", exchange_place).
 		Where("exchange_pair = ?", exchange_pair).
 		Where("scraping_status = ?", status).
 		Find(&scrapingHistories)
-	return scrapingHistories
+
+	if result.Error != nil {
+		return nil, errors.Cause(result.Error)
+	}
+	return scrapingHistories, nil
 }

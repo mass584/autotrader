@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mass584/autotrader/entity"
+	"github.com/pkg/errors"
 )
 
 type ExchangePairCode string
@@ -198,30 +199,27 @@ type AllTrades struct {
 	Trade entity.Trade
 }
 
-func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.TradeCollection {
-	code := GetExchangePairCode(exchangePair)
-	if code == NO_DEAL {
-		fmt.Println("Error: No deal")
-		return entity.TradeCollection{}
+func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) (entity.TradeCollection, error) {
+	if GetExchangePairCode(exchangePair) == NO_DEAL {
+		err := fmt.Errorf("Exchange pair %s is not supported by Coincheck.", exchangePair.String())
+		return nil, errors.Cause(err)
 	}
 
-	query := "pair=" + string(code) + "&last_id=" + strconv.Itoa(lastId+1)
+	query := "pair=" + string(GetExchangePairCode(exchangePair)) + "&last_id=" + strconv.Itoa(lastId+1)
 	resp, err := http.Get("https://coincheck.com/ja/exchange/orders/completes?" + query)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return entity.TradeCollection{}
+		return nil, errors.Cause(err)
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
-		// レートリミットに引っかかると403が返ってくる
-		fmt.Println("Error:", err)
-		return entity.TradeCollection{}
+		err := fmt.Errorf("Status code %d", resp.StatusCode)
+		return nil, errors.Cause(err)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return entity.TradeCollection{}
+		return nil, errors.Cause(err)
 	}
 
 	var mappedResp struct {
@@ -236,27 +234,25 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.T
 
 	err = json.Unmarshal(body, &mappedResp)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return entity.TradeCollection{}
+		return nil, errors.Cause(err)
 	}
 
 	var trades entity.TradeCollection
-
 	for _, complete := range mappedResp.Completes {
 
 		time, err := time.Parse(time.RFC3339, complete.CreatedAt)
 		if err != nil {
-			fmt.Println("Error:", err)
+			return nil, errors.Cause(err)
 		}
 
 		price, err := strconv.ParseFloat(complete.Rate, 64)
 		if err != nil {
-			fmt.Println("Error:", err)
+			return nil, errors.Cause(err)
 		}
 
 		volume, err := strconv.ParseFloat(complete.Amount, 64)
 		if err != nil {
-			fmt.Println("Error:", err)
+			return nil, errors.Cause(err)
 		}
 
 		trades = append(
@@ -271,5 +267,5 @@ func GetAllTradesByLastId(exchangePair entity.ExchangePair, lastId int) entity.T
 		)
 	}
 
-	return trades
+	return trades, nil
 }

@@ -57,7 +57,11 @@ func main() {
 	// 今のところはCoincheckにしか対応していない
 	switch *modePtr {
 	case "scraping":
-		service.ScrapingTradesFromCoincheck(db, pair)
+		err := service.ScrapingTradesFromCoincheck(db, pair)
+		if err != nil {
+			log.Error().Caller().Err(err).Send()
+			os.Exit(1)
+		}
 	case "aggregation":
 		service.AggregationAllCoincheck(db, pair)
 	case "watch":

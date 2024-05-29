@@ -4,15 +4,22 @@ import (
 	"time"
 
 	"github.com/mass584/autotrader/entity"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func SaveTrades(db *gorm.DB, tradeCollection entity.TradeCollection) {
-	db.Clauses(clause.OnConflict{
+func SaveTrades(db *gorm.DB, tradeCollection entity.TradeCollection) (entity.TradeCollection, error) {
+	result := db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "exchange_place"}, {Name: "exchange_pair"}, {Name: "trade_id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"price", "volume", "time"}),
 	}).Create(&tradeCollection)
+
+	if result.Error != nil {
+		return nil, errors.Cause(result.Error)
+	}
+
+	return tradeCollection, nil
 }
 
 func GetTradesByTimeRange(
