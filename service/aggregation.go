@@ -42,11 +42,11 @@ func AggregationAll(
 	if len(tradeAggregations) == 0 {
 		from = time.Date(2023, 2, 23, 0, 0, 0, 0, time.UTC)
 	} else {
-		from = tradeAggregations[0].AggregateDate
+		from = tradeAggregations[0].AggregateDate.Add(24 * time.Hour)
 	}
 
-	now := time.Now().UTC()
-	year, month, day := now.Date()
+	yesterday := time.Now().UTC().Add(-24 * time.Hour)
+	year, month, day := yesterday.Date()
 	to := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 
 	Aggregation(db, exchangePlace, exchangePair, from, to)
