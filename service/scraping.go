@@ -15,7 +15,30 @@ import (
 
 var ErrUnsupportedExchangePlace = errors.New("unsupported exchange place")
 
-func getScrapingRangeFromBitflyer(
+// 取引所に依存した処理を実装する際のインターフェース
+type ExchangePlaceFunctions interface {
+	// 新しいスクレイピング履歴を生成する関数
+	generateNewScrapingHistory(exchangePair entity.ExchangePair, scrapingHistories []entity.ScrapingHistory) (*entity.ScrapingHistory, error)
+	// スクレイピングを実行する関数、戻り値はスクレイピングに失敗したかどうか
+	execScraping(db *gorm.DB, exchangePair entity.ExchangePair, fromID, toID int) bool
+}
+
+func NewExchangePlaceFunctions(exchangePlace entity.ExchangePlace) ExchangePlaceFunctions {
+	// 新しい取引所に対応する際はここに追加する
+	switch exchangePlace {
+	case entity.Bitflyer:
+		return &BitflyerFunctions{}
+	case entity.Coincheck:
+		return &CoincheckFunctions{}
+	default:
+		return nil
+	}
+}
+
+// 取引所ごとの処理を実装する
+type BitflyerFunctions struct{}
+
+func (_ *BitflyerFunctions) generateNewScrapingHistory(
 	exchangePair entity.ExchangePair,
 	scrapingHistories []entity.ScrapingHistory,
 ) (*entity.ScrapingHistory, error) {
@@ -67,7 +90,35 @@ func getScrapingRangeFromBitflyer(
 	}, nil
 }
 
-func getScrapingRangeFromCoincheck(
+func (_ *BitflyerFunctions) execScraping(db *gorm.DB, exchangePair entity.ExchangePair, fromID, toID int) bool {
+	dirty := false
+	lastID := toID
+	for lastID >= fromID {
+		time.Sleep(1000 * time.Millisecond) // レートリミットに引っかからないように1000ミリ秒待つ
+
+		tradeCollection, err := bitflyer.GetTradesByLastID(exchangePair, lastID)
+		if err != nil {
+			dirty = true
+			log.Warn().Err(err).Msgf("Failed to get trades from Bitflyer. lastID=%d", lastID)
+			continue // 失敗しても中断しないで続行する
+		}
+
+		_, err = database.SaveTrades(db, tradeCollection)
+		if err != nil {
+			dirty = true
+			log.Warn().Err(err).Msgf("Failed to save trades. lastID=%d", lastID)
+			continue // 失敗しても中断しないで続行する
+		}
+
+		lastID = tradeCollection.OldestTrade().TradeID - 1
+	}
+
+	return dirty
+}
+
+type CoincheckFunctions struct{}
+
+func (_ *CoincheckFunctions) generateNewScrapingHistory(
 	exchangePair entity.ExchangePair,
 	scrapingHistories []entity.ScrapingHistory,
 ) (*entity.ScrapingHistory, error) {
@@ -106,33 +157,7 @@ func getScrapingRangeFromCoincheck(
 	}, nil
 }
 
-func execScrapingFromBitflyer(db *gorm.DB, exchangePair entity.ExchangePair, fromID, toID int) bool {
-	dirty := false
-	lastID := toID
-	for lastID >= fromID {
-		time.Sleep(1000 * time.Millisecond) // レートリミットに引っかからないように1000ミリ秒待つ
-
-		tradeCollection, err := bitflyer.GetTradesByLastID(exchangePair, lastID)
-		if err != nil {
-			dirty = true
-			log.Warn().Err(err).Msgf("Failed to get trades from Bitflyer. lastID=%d", lastID)
-			continue // 失敗しても中断しないで続行する
-		}
-
-		_, err = database.SaveTrades(db, tradeCollection)
-		if err != nil {
-			dirty = true
-			log.Warn().Err(err).Msgf("Failed to save trades. lastID=%d", lastID)
-			continue // 失敗しても中断しないで続行する
-		}
-
-		lastID = tradeCollection.OldestTrade().TradeID - 1
-	}
-
-	return dirty
-}
-
-func execScrapingFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair, fromID, toID int) bool {
+func (_ *CoincheckFunctions) execScraping(db *gorm.DB, exchangePair entity.ExchangePair, fromID, toID int) bool {
 	dirty := false
 	lastID := toID
 	for lastID >= fromID {
@@ -163,6 +188,8 @@ func ScrapingTrades(
 	exchangePlace entity.ExchangePlace,
 	exchangePair entity.ExchangePair,
 ) error {
+	funcs := NewExchangePlaceFunctions(exchangePlace)
+
 	// スクレイピング履歴の取得
 	scrapingHistories, err := database.GetScrapingHistoriesByStatus(
 		db,
@@ -179,15 +206,7 @@ func ScrapingTrades(
 		return scrapingHistories[a].FromID > scrapingHistories[b].FromID
 	})
 
-	var newScrapingHistory *entity.ScrapingHistory
-	switch exchangePlace {
-	case entity.Bitflyer:
-		newScrapingHistory, err = getScrapingRangeFromBitflyer(exchangePair, scrapingHistories)
-	case entity.Coincheck:
-		newScrapingHistory, err = getScrapingRangeFromCoincheck(exchangePair, scrapingHistories)
-	default:
-		return ErrUnsupportedExchangePlace
-	}
+	newScrapingHistory, err := funcs.generateNewScrapingHistory(exchangePair, scrapingHistories)
 	if err != nil {
 		return err
 	}
@@ -202,14 +221,7 @@ func ScrapingTrades(
 	}
 
 	// スクレイピングの実行
-	var dirty bool
-
-	switch exchangePlace {
-	case entity.Bitflyer:
-		dirty = execScrapingFromBitflyer(db, exchangePair, scrapingHistory.FromID, scrapingHistory.ToID)
-	case entity.Coincheck:
-		dirty = execScrapingFromCoincheck(db, exchangePair, scrapingHistory.FromID, scrapingHistory.ToID)
-	}
+	dirty := funcs.execScraping(db, exchangePair, scrapingHistory.FromID, scrapingHistory.ToID)
 
 	// スクレイピングステータスの更新
 	if dirty {
