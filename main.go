@@ -29,8 +29,15 @@ func main() {
 	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
 
 	modePtr := flag.String("mode", "", "実行モード")
+	placePtr := flag.String("place", "Bitflyer", "取引ペア")
 	pairPtr := flag.String("pair", "BTC_JPY", "取引ペア")
 	flag.Parse()
+
+	place, err := entity.ExchangePlaceString(*placePtr)
+	if err != nil {
+		log.Error().Caller().Err(err).Send()
+		os.Exit(1)
+	}
 
 	pair, err := entity.ExchangePairString(*pairPtr)
 	if err != nil {
@@ -56,7 +63,7 @@ func main() {
 	// 今のところはCoincheckにしか対応していない
 	switch *modePtr {
 	case "scraping":
-		err := service.ScrapingTrades(db, entity.Coincheck, pair)
+		err := service.ScrapingTrades(db, place, pair)
 		if err != nil {
 			log.Error().Stack().Err(err).Send()
 			os.Exit(1)

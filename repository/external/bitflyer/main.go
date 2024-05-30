@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/mass584/autotrader/entity"
+	"github.com/pkg/errors"
 )
 
 type ExchangePairCode string
+
+var ErrIDIsTooOld = errors.New("ID is too old")
 
 const (
 	BTC_JPY ExchangePairCode = "BTC_JPY"
@@ -109,39 +114,61 @@ type ExecutionsResponse []struct {
 	SellChildOrderAcceptanceId string  `json:"sell_child_order_acceptance_id"`
 }
 
-func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
+type BitflyerBadRequestResponse struct {
+	Status       int    `json:"status"`
+	ErrorMessage string `json:"error_message"`
+}
+
+func GetTradesByLastID(exchangePair entity.ExchangePair, lastID int) (entity.TradeCollection, error) {
 	code := getBitflyerExchangePairCode(exchangePair)
 	if code == NO_DEAL {
-		fmt.Println("Error: No deal")
-		return []entity.Trade{}
+		err := fmt.Errorf("Exchange pair %s is not supported by Bitflyer.", exchangePair.String())
+		return nil, errors.WithStack(err)
 	}
 
-	query := "product_code=" + string(code) + "&count=100"
+	query := "product_code=" + string(code) + "&before=" + strconv.Itoa(lastID+1) + "&count=500"
 	resp, err := http.Get("https://api.bitflyer.com/v1/executions?" + query)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return []entity.Trade{}
+		return nil, errors.WithStack(err)
 	}
 	defer resp.Body.Close()
 
+	handledErr := []int{http.StatusOK, http.StatusBadRequest}
+	if !slices.Contains(handledErr, resp.StatusCode) {
+		err := fmt.Errorf("Status code %d", resp.StatusCode)
+		return nil, errors.WithStack(err)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return []entity.Trade{}
+		return nil, errors.WithStack(err)
+	}
+
+	if resp.StatusCode == http.StatusBadRequest {
+		var mappedResp BitflyerBadRequestResponse
+		err = json.Unmarshal(body, &mappedResp)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if mappedResp.Status == -156 {
+			return nil, ErrIDIsTooOld
+		} else {
+			err = fmt.Errorf("%v", mappedResp)
+			return nil, errors.WithStack(err)
+		}
 	}
 
 	var mappedResp ExecutionsResponse
 	err = json.Unmarshal(body, &mappedResp)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return []entity.Trade{}
+		return nil, errors.WithStack(err)
 	}
 
 	var recentTrades entity.TradeCollection
 	for _, execution := range mappedResp {
 		time, err := time.Parse(time.RFC3339, execution.ExecDate+"Z")
 		if err != nil {
-			fmt.Println("Error:", err)
+			return nil, errors.WithStack(err)
 		}
 		recentTrades = append(
 			recentTrades,
@@ -156,5 +183,5 @@ func GetRecentTrades(exchangePair entity.ExchangePair) entity.TradeCollection {
 		)
 	}
 
-	return recentTrades
+	return recentTrades, nil
 }
