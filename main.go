@@ -56,7 +56,7 @@ func main() {
 	// 今のところはCoincheckにしか対応していない
 	switch *modePtr {
 	case "scraping":
-		err := service.ScrapingTradesFromCoincheck(db, pair)
+		err := service.ScrapingTrades(db, entity.Coincheck, pair)
 		if err != nil {
 			log.Error().Stack().Err(err).Send()
 			os.Exit(1)
