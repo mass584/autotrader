@@ -7,7 +7,6 @@ import (
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/repository/database"
 	"github.com/mass584/autotrader/repository/external/coincheck"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -21,7 +20,7 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 		entity.ScrapingStatusSuccess,
 	)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	sort.Slice(scrapingHistories, func(a, b int) bool {
@@ -46,13 +45,13 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 	var tradeCollection entity.TradeCollection
 	tradeCollection, err = coincheck.GetAllTradesByLastId(exchangePair, fromID)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	tradeFrom := tradeCollection.LatestTrade()
 
 	tradeCollection, err = coincheck.GetAllTradesByLastId(exchangePair, toID)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	tradeTo := tradeCollection.LatestTrade()
 
@@ -67,7 +66,7 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 			ToTime:        tradeTo.Time,
 		})
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	// スクレイピングの実行
@@ -101,7 +100,7 @@ func ScrapingTradesFromCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) 
 	}
 	_, err = database.SaveScrapingHistory(db, *scrapingHistory)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	return nil

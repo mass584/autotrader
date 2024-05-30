@@ -5,7 +5,6 @@ import (
 
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/repository/database"
-	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -23,12 +22,12 @@ func Aggregation(
 		}
 		newTradeAggregation, error := database.GenerateNewAggregation(db, exchangePlace, exchangePair, startDate)
 		if error != nil {
-			return errors.WithStack(error)
+			return error
 		}
 
 		_, error = database.SaveTradeAggregation(db, *newTradeAggregation)
 		if error != nil {
-			return errors.WithStack(error)
+			return error
 		}
 
 		startDate = startDate.Add(24 * time.Hour)
@@ -40,7 +39,7 @@ func Aggregation(
 func AggregationAllCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) error {
 	tradeAggregations, err := database.GetAllTradeAggregations(db, entity.Coincheck, exchangePair)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	var from time.Time
