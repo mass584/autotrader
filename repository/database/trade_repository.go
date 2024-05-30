@@ -49,15 +49,15 @@ func GetTradeByLatestBefore(
 	timeLeft := at.Add(-10 * time.Minute)
 
 	var trade entity.Trade
-	db.
+	result := db.
 		Where("exchange_place = ?", exchange_place).
 		Where("exchange_pair = ?", exchange_pair).
 		Where("? <= time and time <= ?", timeLeft, at).
 		Order("time DESC").
 		First(&trade)
 
-	if trade.ID == 0 {
-		return nil, gorm.ErrRecordNotFound
+	if result.Error != nil {
+		return nil, errors.WithStack(result.Error)
 	}
 
 	return &trade, nil

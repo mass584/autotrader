@@ -6,6 +6,7 @@ import (
 
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/repository/database"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -15,31 +16,34 @@ const UNIT_VOLUME_YEN = 100000
 const TAKE_PROFIT_AMOUNT_YEN = 20000
 const STOP_LOSS_AMOUNT_YEN = 10000
 
-func closePositions(db *gorm.DB, time time.Time) {
+func closePositions(db *gorm.DB, time time.Time) error {
 	// 現在のポジションを取得
-	positions := database.GetPositionsByStatus(
+	positions, err := database.GetPositionsByStatus(
 		db,
 		entity.Coincheck,
 		entity.BTC_JPY,
 		entity.PositionTypeLong,
 		entity.PositionStatusHold,
 	)
+	if err != nil {
+		return err
+	}
 
 	// 現在の価格を取得
 	// 取引モデルのパラメータチューニングの際は、過去の指定日時の取引価格を取得するため、データベースから価格をひいている。
 	// その際、正しく取得するためにはスクレイピング済みである必要があることに注意。
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
-	trade, error := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
-	if error != nil {
+	trade, err := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
+	if err != nil {
 		// 10分間取引がない場合は取得できなく、エラーとなる
-		log.Warn().Msg("Failed to get trade data.")
-		return
+		return err
 	}
 
 	currentPrice := trade.Price
 
 	// 現在のポジションがクローズ対象かどうが判定して、そうであればクローズする
 	// 一旦はロングポジションだけを考える
+	failed := false
 	for _, position := range positions {
 		if currentPrice > position.BuyPrice.Float64 {
 			// 利益確定条件を満たす場合はポジションをクローズする
@@ -50,7 +54,12 @@ func closePositions(db *gorm.DB, time time.Time) {
 				position.PositionStatus = entity.PositionStatusClosedByTakeProfit
 				position.SellPrice = sql.NullFloat64{Float64: currentPrice, Valid: true}
 				position.SellTime = sql.NullTime{Time: time, Valid: true}
-				database.SavePosition(db, position)
+				_, err := database.SavePosition(db, position)
+				if err != nil {
+					failed = true
+					log.Warn().Stack().Err(err).Send()
+					continue
+				}
 			}
 		} else if currentPrice < position.BuyPrice.Float64 {
 			loss := position.BuyPrice.Float64*position.Volume - currentPrice*position.Volume
@@ -61,31 +70,44 @@ func closePositions(db *gorm.DB, time time.Time) {
 				position.PositionStatus = entity.PositionStatusClosedByStopLoss
 				position.SellPrice = sql.NullFloat64{Float64: currentPrice, Valid: true}
 				position.SellTime = sql.NullTime{Time: time, Valid: true}
-				database.SavePosition(db, position)
+				_, err := database.SavePosition(db, position)
+				if err != nil {
+					failed = true
+					log.Warn().Stack().Err(err).Send()
+					continue
+				}
 			}
 		}
 	}
 
+	if failed {
+		err = errors.New("Failed to save position data.")
+		return errors.WithStack(err)
+	}
+
+	return nil
 }
 
-func openPosition(db *gorm.DB, time time.Time) {
+func openPosition(db *gorm.DB, time time.Time) error {
 	// 現在のポジションを取得
-	positions := database.GetPositionsByStatus(
+	positions, err := database.GetPositionsByStatus(
 		db,
 		entity.Coincheck,
 		entity.BTC_JPY,
 		entity.PositionTypeLong,
 		entity.PositionStatusHold,
 	)
+	if err != nil {
+		return err
+	}
 
 	// 現在の価格を取得
 	// 取引モデルのパラメータチューニングの際は、過去の指定日時の取引価格を取得するため、データベースから価格をひいている。
 	// その際、正しく取得するためにはスクレイピング済みである必要があることに注意。
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
-	trade, error := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
-	if error != nil {
-		log.Warn().Msg("Failed to get trade data.")
-		return
+	trade, err := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
+	if err != nil {
+		return err
 	}
 
 	currentPrice := trade.Price
@@ -98,7 +120,7 @@ func openPosition(db *gorm.DB, time time.Time) {
 
 	tradeMargin := FUND_MAX_YEN - positionSum
 	if UNIT_VOLUME_YEN > tradeMargin {
-		return
+		return nil
 	}
 
 	// 新しいポジションを取得するかどうか判定して、そうであればリクエストする
@@ -119,16 +141,29 @@ func openPosition(db *gorm.DB, time time.Time) {
 			BuyPrice: sql.NullFloat64{Float64: currentPrice, Valid: true},
 			BuyTime:  sql.NullTime{Time: time, Valid: true},
 		}
-		database.SavePosition(db, newPosition)
+		_, err := database.SavePosition(db, newPosition)
+
+		if err != nil {
+			return err
+		}
 	}
 
+	return nil
 }
 
 func WatchPostionOnCoincheck(db *gorm.DB) {
 	for {
 		at := time.Now()
-		closePositions(db, at)
-		openPosition(db, at)
+		err := closePositions(db, at)
+		if err != nil {
+			log.Warn().Stack().Err(err).Send()
+		}
+
+		err = openPosition(db, at)
+		if err != nil {
+			log.Warn().Stack().Err(err).Send()
+		}
+
 		time.Sleep(1 * time.Minute)
 	}
 }
@@ -138,7 +173,14 @@ func WatchPostionOnCoincheckForSimulation(db *gorm.DB) {
 	simulationEnd := time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)
 	for simulationTime.Before(simulationEnd) {
 		simulationTime = simulationTime.Add(1 * time.Hour)
-		closePositions(db, simulationTime)
-		openPosition(db, simulationTime)
+		err := closePositions(db, simulationTime)
+		if err != nil {
+			log.Warn().Stack().Err(err).Send()
+		}
+
+		err = openPosition(db, simulationTime)
+		if err != nil {
+			log.Warn().Stack().Err(err).Send()
+		}
 	}
 }
