@@ -25,15 +25,17 @@ func getScrapingRangeFromBitflyer(
 		fromID = scrapingHistories[0].ToID + 1
 		toID = fromID + 100000 - 1
 	} else {
-		// 初回実行の時にはid=2527823843(2024-05-30 04:54:53)まで遡る
+		// 初回実行の時にはid=2522208992(2024-04-29 04:06:06)まで遡る
 		// 取引ペアが違くてもuniqueなIDが割り当てられているため、取引ペアによらずこのIDから取得する
 		// 最大31日までしか遡れないようになっている
-		fromID = 2527823843
+		fromID = 2522208992
 		toID = fromID + 100000 - 1
 	}
 
 	var tradeFrom, tradeTo entity.Trade
 	for {
+		time.Sleep(1000 * time.Millisecond) // レートリミットに引っかからないように1000ミリ秒待つ
+
 		var tradeCollection entity.TradeCollection
 		tradeCollection, err := bitflyer.GetTradesByLastID(exchangePair, fromID)
 		if err == bitflyer.ErrIDIsTooOld {
@@ -94,7 +96,7 @@ func execScrapingFromBitflyer(db *gorm.DB, exchangePair entity.ExchangePair, tra
 	dirty := false
 	lastID := tradeTo.TradeID
 	for lastID >= tradeFrom.TradeID {
-		time.Sleep(100 * time.Millisecond) // レートリミットに引っかからないように100ミリ秒待つ
+		time.Sleep(1000 * time.Millisecond) // レートリミットに引っかからないように1000ミリ秒待つ
 
 		tradeCollection, err := bitflyer.GetTradesByLastID(exchangePair, lastID)
 		if err != nil {
