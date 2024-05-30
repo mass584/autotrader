@@ -6,7 +6,6 @@ import (
 
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/repository/database"
-	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -16,6 +15,11 @@ const (
 	Sell Decision = "SELL"
 	Buy  Decision = "BUY"
 	Hold Decision = "HOLD"
+)
+
+var (
+	ErrAggregationIsNotFinished = errors.New("Aggregation is not finished")
+	ErrNoTradesInPeriod         = errors.New("No trades in the period")
 )
 
 // 指定した期間で集計対象期間を利用できる場合、集計結果を参照する
@@ -34,11 +38,17 @@ func calculateSimpleMovingAverage(
 	toDatetime := signalAt
 	toDate := time.Date(toDatetime.Year(), toDatetime.Month(), toDatetime.Day(), 0, 0, 0, 0, time.UTC)
 
-	// 集計はUTCの0時を境界とした1日単位で行われているので、左右の中途半端な領域はオンデマンドで集計しなおす
-	aggregations := database.GetTradeAggregationsByDateRange(db, exchangePlace, exchangePair, fromDate, toDate)
-	tradesLeft := database.GetTradesByTimeRange(db, exchangePlace, exchangePair, fromDatetime, fromDate)
-	tradesRight := database.GetTradesByTimeRange(db, exchangePlace, exchangePair, toDate, fromDatetime)
-	trades := append(tradesLeft, tradesRight...)
+	var aggregations []entity.TradeAggregation
+	var trades []entity.Trade
+	if toDate.After(fromDate) { // 集計結果が参照可能な場合
+		aggregations = database.GetTradeAggregationsByDateRange(db, exchangePlace, exchangePair, fromDate, toDate)
+		// 集計はUTCの0時を境界とした1日単位で行われているので、左右の中途半端な領域はオンデマンドで集計しなおす
+		tradesLeft := database.GetTradesByTimeRange(db, exchangePlace, exchangePair, fromDatetime, fromDate)
+		tradesRight := database.GetTradesByTimeRange(db, exchangePlace, exchangePair, toDate, toDatetime)
+		trades = append(tradesLeft, tradesRight...)
+	} else { // 集計結果が参照不可能な場合
+		trades = database.GetTradesByTimeRange(db, exchangePlace, exchangePair, fromDatetime, toDatetime)
+	}
 
 	// 集計済みかどうか確認
 	days := int(toDate.Sub(fromDate).Hours()/24) + 1
@@ -47,7 +57,7 @@ func calculateSimpleMovingAverage(
 	}
 
 	if days != len(aggregations) {
-		return 0, errors.New("Aggregation is not finished")
+		return 0, ErrAggregationIsNotFinished
 	}
 
 	var totalTransaction float64
@@ -64,7 +74,7 @@ func calculateSimpleMovingAverage(
 	}
 
 	if totalCount == 0 {
-		return 0, errors.New("No trades in the period")
+		return 0, ErrNoTradesInPeriod
 	}
 
 	return totalTransaction / float64(totalCount), nil
@@ -76,29 +86,27 @@ func trendFollowingSignal(
 	exchangePlace entity.ExchangePlace,
 	exchangePair entity.ExchangePair,
 	signalAt time.Time,
-) Decision {
+) (Decision, error) {
 	// 過去10日分の取引データを取得する
-	shortSMA, error := calculateSimpleMovingAverage(db, exchangePlace, exchangePair, signalAt, 10*24*time.Hour)
-	if error != nil {
-		log.Warn().Msgf("%v", error)
-		return Hold
+	shortSMA, err := calculateSimpleMovingAverage(db, exchangePlace, exchangePair, signalAt, 10*24*time.Hour)
+	if err != nil {
+		return Hold, err
 	}
 	// 過去50日分の取引データを取得する
-	longSMA, error := calculateSimpleMovingAverage(db, exchangePlace, exchangePair, signalAt, 50*24*time.Hour)
-	if error != nil {
-		//log.Warn().Msgf("%v", error)
-		return Hold
+	longSMA, err := calculateSimpleMovingAverage(db, exchangePlace, exchangePair, signalAt, 50*24*time.Hour)
+	if err != nil {
+		return Hold, err
 	}
 
 	if shortSMA > longSMA {
-		return Buy
+		return Buy, nil
 	} else if shortSMA < longSMA {
-		return Sell
+		return Sell, nil
 	}
-	return Hold
+	return Hold, nil
 }
 
-func TestTrendFollowingSignal(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair, signalAt time.Time) Decision {
+func TestTrendFollowingSignal(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, error) {
 	return trendFollowingSignal(db, exchangePlace, exchangePair, signalAt)
 }
 
@@ -108,27 +116,27 @@ func meanReversionSignal(
 	exchangePlace entity.ExchangePlace,
 	exchangePair entity.ExchangePair,
 	signalAt time.Time,
-) Decision {
-	sma, error := calculateSimpleMovingAverage(db, exchangePlace, exchangePair, signalAt, 10*time.Minute)
-	if error != nil {
-		return Hold
+) (Decision, error) {
+	sma, err := calculateSimpleMovingAverage(db, exchangePlace, exchangePair, signalAt, 10*time.Minute)
+	if err != nil {
+		return Hold, err
 	}
 
 	trade, error := database.GetTradeByLatestBefore(db, exchangePlace, exchangePair, signalAt)
 	if error != nil {
-		return Hold
+		return Hold, err
 	}
 
 	currentPrice := trade.Price
 
 	if currentPrice < sma {
-		return Buy
+		return Buy, nil
 	} else if currentPrice > sma {
-		return Sell
+		return Sell, nil
 	}
-	return Hold
+	return Hold, nil
 }
 
-func TestMeanReversionSignal(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair, signalAt time.Time) Decision {
+func TestMeanReversionSignal(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair, signalAt time.Time) (Decision, error) {
 	return meanReversionSignal(db, exchangePlace, exchangePair, signalAt)
 }

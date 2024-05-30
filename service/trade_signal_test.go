@@ -7,6 +7,7 @@ import (
 	"github.com/mass584/autotrader/entity"
 	"github.com/mass584/autotrader/helper"
 	"github.com/mass584/autotrader/service"
+	"github.com/pkg/errors"
 )
 
 func TestTrendFollowingSignal(t *testing.T) {
@@ -15,10 +16,15 @@ func TestTrendFollowingSignal(t *testing.T) {
 		tradeCollection entity.TradeCollection
 	}
 
+	type want struct {
+		value service.Decision
+		error error
+	}
+
 	tests := []struct {
 		name string
 		args args
-		want service.Decision
+		want want
 	}{
 		{
 			name: "短期移動平均が長期移動平均を下回った時にトレンドフォローが売りシグナルを指し示すこと",
@@ -39,7 +45,10 @@ func TestTrendFollowingSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Sell,
+			want: want{
+				value: service.Sell,
+				error: nil,
+			},
 		},
 		{
 			name: "短期移動平均が長期移動平均を下回った時にトレンドフォローが売りシグナルを指し示すこと 境界値ケース",
@@ -70,7 +79,10 @@ func TestTrendFollowingSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Sell,
+			want: want{
+				value: service.Sell,
+				error: nil,
+			},
 		},
 		{
 			name: "短期移動平均が長期移動平均を上回った時にトレンドフォローが買いシグナルを指し示すこと",
@@ -91,7 +103,10 @@ func TestTrendFollowingSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Buy,
+			want: want{
+				value: service.Buy,
+				error: nil,
+			},
 		},
 		{
 			name: "短期移動平均が長期移動平均を上回った時にトレンドフォローが買いシグナルを指し示すこと 境界値ケース",
@@ -122,7 +137,10 @@ func TestTrendFollowingSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Buy,
+			want: want{
+				value: service.Buy,
+				error: nil,
+			},
 		},
 		{
 			name: "短期移動平均の計算対象となる取引が存在しない場合はホールドシグナルを指し示すこと",
@@ -138,7 +156,10 @@ func TestTrendFollowingSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Hold,
+			want: want{
+				value: service.Hold,
+				error: service.ErrNoTradesInPeriod,
+			},
 		},
 		{
 			name: "長期移動平均の計算対象となる取引が存在しない場合はホールドシグナルを指し示すこと",
@@ -154,7 +175,10 @@ func TestTrendFollowingSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Hold,
+			want: want{
+				value: service.Hold,
+				error: service.ErrNoTradesInPeriod,
+			},
 		},
 	}
 
@@ -172,9 +196,12 @@ func TestTrendFollowingSignal(t *testing.T) {
 				helper.DatabaseCleaner(db)
 			}()
 
-			result := service.TestTrendFollowingSignal(db, entity.Coincheck, entity.BTC_JPY, tt.args.signalAt)
-			if result != tt.want {
-				t.Errorf("result = %v, want = %v", result, tt.want)
+			result, err := service.TestTrendFollowingSignal(db, entity.Coincheck, entity.BTC_JPY, tt.args.signalAt)
+			if result != tt.want.value {
+				t.Errorf("result = %v, want = %v", result, tt.want.value)
+			}
+			if !errors.Is(err, tt.want.error) {
+				t.Errorf("result = %v, want = %v", err, tt.want.error)
 			}
 		})
 	}
@@ -186,10 +213,15 @@ func TestMeanReversionSignal(t *testing.T) {
 		tradeCollection entity.TradeCollection
 	}
 
+	type want struct {
+		value service.Decision
+		error error
+	}
+
 	tests := []struct {
 		name string
 		args args
-		want service.Decision
+		want want
 	}{
 		{
 			name: "現在価格が移動平均を下回った時にミーンリバージョンが買いシグナルを指し示すこと",
@@ -210,7 +242,10 @@ func TestMeanReversionSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Buy,
+			want: want{
+				value: service.Buy,
+				error: nil,
+			},
 		},
 		{
 			name: "現在価格が移動平均を上回った時にミーンリバージョンが売りシグナルを指し示すこと",
@@ -231,7 +266,10 @@ func TestMeanReversionSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Sell,
+			want: want{
+				value: service.Sell,
+				error: nil,
+			},
 		},
 		{
 			name: "移動平均の計算対象となる取引が存在しない場合はホールドシグナルを指し示すこと",
@@ -247,7 +285,10 @@ func TestMeanReversionSignal(t *testing.T) {
 					},
 				),
 			},
-			want: service.Hold,
+			want: want{
+				value: service.Hold,
+				error: service.ErrNoTradesInPeriod,
+			},
 		},
 	}
 
@@ -259,9 +300,12 @@ func TestMeanReversionSignal(t *testing.T) {
 				helper.DatabaseCleaner(db)
 			}()
 
-			result := service.TestMeanReversionSignal(db, entity.Coincheck, entity.BTC_JPY, tt.args.signalAt)
-			if result != tt.want {
-				t.Errorf("result = %v, want = %v", result, tt.want)
+			result, err := service.TestMeanReversionSignal(db, entity.Coincheck, entity.BTC_JPY, tt.args.signalAt)
+			if result != tt.want.value {
+				t.Errorf("result = %v, want = %v", result, tt.want.value)
+			}
+			if !errors.Is(err, tt.want.error) {
+				t.Errorf("result = %v, want = %v", err, tt.want.error)
 			}
 		})
 	}

@@ -124,7 +124,11 @@ func openPosition(db *gorm.DB, time time.Time) error {
 	}
 
 	// 新しいポジションを取得するかどうか判定して、そうであればリクエストする
-	trendFollowSignal := trendFollowingSignal(db, entity.Coincheck, entity.BTC_JPY, time)
+	trendFollowSignal, err := trendFollowingSignal(db, entity.Coincheck, entity.BTC_JPY, time)
+	if err != nil {
+		log.Warn().Stack().Err(err).Send()
+	}
+
 	// 一旦はトレンドフォローシグナルだけを見て新しいポジションを取得するかどうか判定しているが、
 	// 実際には複数のシグナルを組み合わせて判定することが望ましい
 	// 一旦はロングポジションだけを考える
