@@ -62,11 +62,7 @@ func main() {
 
 	switch *modePtr {
 	case "scraping":
-		err := service.ScrapingTrades(db, place, pair)
-		if err != nil {
-			log.Error().Stack().Err(err).Send()
-			os.Exit(1)
-		}
+		service.ScrapingTrades(db, place, pair)
 	case "aggregation":
 		err := service.AggregationAll(db, place, pair)
 		if err != nil {

@@ -13,6 +13,7 @@ import (
 )
 
 var ErrUnsupportedExchangePlace = errors.New("unsupported exchange place")
+var ErrPendingScraping = errors.New("pending scraping")
 
 // 取引所に依存した処理を実装する際のインターフェース
 type ExchangePlaceFunctions interface {
@@ -182,14 +183,13 @@ func (_ *CoincheckFunctions) execScraping(db *gorm.DB, exchangePair entity.Excha
 	return dirty
 }
 
-func ScrapingTrades(
+func scrapingOneBlock(
 	db *gorm.DB,
 	exchangePlace entity.ExchangePlace,
 	exchangePair entity.ExchangePair,
 ) error {
 	funcs := NewExchangePlaceFunctions(exchangePlace)
 
-	// スクレイピング履歴の取得
 	scrapingHistories, err := database.GetScrapingHistoriesByStatus(
 		db,
 		exchangePlace,
@@ -205,7 +205,11 @@ func ScrapingTrades(
 		return err
 	}
 
-	// スクレイピング履歴の作成
+	maxTime := time.Now().Add(-24 * time.Hour).UTC()
+	if newScrapingHistory.FromTime.After(maxTime) {
+		return ErrPendingScraping
+	}
+
 	scrapingHistory, err := database.SaveScrapingHistory(
 		db,
 		*newScrapingHistory,
@@ -214,19 +218,36 @@ func ScrapingTrades(
 		return err
 	}
 
-	// スクレイピングの実行
 	dirty := funcs.execScraping(db, exchangePair, scrapingHistory.FromID, scrapingHistory.ToID)
-
-	// スクレイピングステータスの更新
 	if dirty {
 		scrapingHistory.ScrapingStatus = entity.ScrapingStatusFailed
 	} else {
 		scrapingHistory.ScrapingStatus = entity.ScrapingStatusSuccess
 	}
+
 	_, err = database.SaveScrapingHistory(db, *scrapingHistory)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func ScrapingTrades(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+) {
+	for {
+		err := scrapingOneBlock(db, exchangePlace, exchangePair)
+		if err != nil {
+			log.Error().Stack().Err(err).Send()
+		}
+
+		if errors.Is(err, ErrPendingScraping) {
+			time.Sleep(24 * time.Hour)
+		}
+
+		time.Sleep(10 * time.Second)
+	}
 }
