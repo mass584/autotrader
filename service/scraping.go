@@ -84,7 +84,7 @@ func (_ *BitflyerFunctions) generateNewScrapingHistory(
 		ExchangePlace: entity.Bitflyer,
 		ExchangePair:  exchangePair,
 		FromID:        fromID,
-		ToID:          tradeTo.ID, // 右端は実存する値にしておく
+		ToID:          tradeTo.TradeID, // 右端は実存する値にしておく
 		FromTime:      tradeFrom.Time,
 		ToTime:        tradeTo.Time,
 	}, nil
@@ -152,7 +152,7 @@ func (_ *CoincheckFunctions) generateNewScrapingHistory(
 		ExchangePlace: entity.Coincheck,
 		ExchangePair:  exchangePair,
 		FromID:        fromID,
-		ToID:          tradeTo.ID, // 右端は実存する値にしておく
+		ToID:          tradeTo.TradeID, // 右端は実存する値にしておく
 		FromTime:      tradeFrom.Time,
 		ToTime:        tradeTo.Time,
 	}, nil
