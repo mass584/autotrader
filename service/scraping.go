@@ -45,12 +45,12 @@ func (_ *BitflyerFunctions) generateNewScrapingHistory(
 	var fromID, toID int
 	if len(scrapingHistories) > 0 {
 		// 最新の取得履歴の次のIDから取得する
+		// もし取得に失敗した範囲がある場合はその範囲も取得したいが、APIの仕様は最大31日までしか遡れないようになっている
 		fromID = scrapingHistories[0].ToID + 1
 		toID = fromID + 100000 - 1
 	} else {
 		// 初回実行の時にはid=2522208992(2024-04-29 04:06:06)まで遡る
 		// 取引ペアが違くてもuniqueなIDが割り当てられているため、取引ペアによらずこのIDから取得する
-		// 最大31日までしか遡れないようになっている
 		fromID = 2522208992
 		toID = fromID + 100000 - 1
 	}
@@ -84,7 +84,7 @@ func (_ *BitflyerFunctions) generateNewScrapingHistory(
 		ExchangePlace: entity.Bitflyer,
 		ExchangePair:  exchangePair,
 		FromID:        fromID,
-		ToID:          toID,
+		ToID:          tradeTo.ID, // 右端は実存する値にしておく
 		FromTime:      tradeFrom.Time,
 		ToTime:        tradeTo.Time,
 	}, nil
@@ -122,17 +122,18 @@ func (_ *CoincheckFunctions) generateNewScrapingHistory(
 	exchangePair entity.ExchangePair,
 	scrapingHistories []entity.ScrapingHistory,
 ) (*entity.ScrapingHistory, error) {
-	var fromID int
+	var fromID, toID int
 	if len(scrapingHistories) > 0 {
 		// 最新の取得履歴の次のIDから取得する
 		// もし取得に失敗した範囲がある場合はその範囲も取得するべきだが、そのような処理はまだ入っていない
 		fromID = scrapingHistories[0].ToID + 1
+		toID = fromID + 100000 - 1
 	} else {
 		// 初回実行の時にはid=240000001(2023-02-22 19:03:39)まで遡る
 		// 取引ペアが違くてもuniqueなIDが割り当てられているため、取引ペアによらずこのIDから取得する
 		fromID = 240000001
+		toID = fromID + 100000 - 1
 	}
-	toID := fromID + 100000 - 1
 
 	var tradeCollection entity.TradeCollection
 	tradeCollection, err := coincheck.GetAllTradesByLastId(exchangePair, fromID)
@@ -151,7 +152,7 @@ func (_ *CoincheckFunctions) generateNewScrapingHistory(
 		ExchangePlace: entity.Coincheck,
 		ExchangePair:  exchangePair,
 		FromID:        fromID,
-		ToID:          toID,
+		ToID:          tradeTo.ID, // 右端は実存する値にしておく
 		FromTime:      tradeFrom.Time,
 		ToTime:        tradeTo.Time,
 	}, nil
@@ -205,7 +206,7 @@ func scrapingOneBlock(
 		return err
 	}
 
-	maxTime := time.Now().Add(-24 * time.Hour).UTC()
+	maxTime := time.Now().Add(-1 * time.Hour).UTC()
 	if newScrapingHistory.FromTime.After(maxTime) {
 		return ErrPendingScraping
 	}
@@ -245,7 +246,7 @@ func ScrapingTrades(
 		}
 
 		if errors.Is(err, ErrPendingScraping) {
-			time.Sleep(24 * time.Hour)
+			time.Sleep(time.Hour)
 		}
 
 		time.Sleep(10 * time.Second)
