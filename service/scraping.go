@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"sort"
 	"time"
 
 	"github.com/mass584/autotrader/entity"
@@ -200,11 +199,6 @@ func ScrapingTrades(
 	if err != nil {
 		return err
 	}
-
-	sort.Slice(scrapingHistories, func(a, b int) bool {
-		// 先頭が最新の取引履歴になるように、FromIDが大きい順に並べる
-		return scrapingHistories[a].FromID > scrapingHistories[b].FromID
-	})
 
 	newScrapingHistory, err := funcs.generateNewScrapingHistory(exchangePair, scrapingHistories)
 	if err != nil {

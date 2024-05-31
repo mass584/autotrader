@@ -34,6 +34,7 @@ func GetScrapingHistoriesByStatus(
 		Where("exchange_place = ?", exchange_place).
 		Where("exchange_pair = ?", exchange_pair).
 		Where("scraping_status = ?", status).
+		Order("from_id DESC").
 		Find(&scrapingHistories)
 
 	if result.Error != nil {
