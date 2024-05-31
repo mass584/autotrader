@@ -16,12 +16,17 @@ const UNIT_VOLUME_YEN = 100000
 const TAKE_PROFIT_AMOUNT_YEN = 20000
 const STOP_LOSS_AMOUNT_YEN = 10000
 
-func closePositions(db *gorm.DB, time time.Time) error {
+func closePositions(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+	time time.Time,
+) error {
 	// 現在のポジションを取得
 	positions, err := database.GetPositionsByStatus(
 		db,
-		entity.Coincheck,
-		entity.BTC_JPY,
+		exchangePlace,
+		exchangePair,
 		entity.PositionTypeLong,
 		entity.PositionStatusHold,
 	)
@@ -33,7 +38,7 @@ func closePositions(db *gorm.DB, time time.Time) error {
 	// 取引モデルのパラメータチューニングの際は、過去の指定日時の取引価格を取得するため、データベースから価格をひいている。
 	// その際、正しく取得するためにはスクレイピング済みである必要があることに注意。
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
-	trade, err := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
+	trade, err := database.GetTradeByLatestBefore(db, exchangePlace, exchangePair, time)
 	if err != nil {
 		// 10分間取引がない場合は取得できなく、エラーとなる
 		return err
@@ -88,12 +93,17 @@ func closePositions(db *gorm.DB, time time.Time) error {
 	return nil
 }
 
-func openPosition(db *gorm.DB, time time.Time) error {
+func openPosition(
+	db *gorm.DB,
+	exchangePlace entity.ExchangePlace,
+	exchangePair entity.ExchangePair,
+	time time.Time,
+) error {
 	// 現在のポジションを取得
 	positions, err := database.GetPositionsByStatus(
 		db,
-		entity.Coincheck,
-		entity.BTC_JPY,
+		exchangePlace,
+		exchangePair,
 		entity.PositionTypeLong,
 		entity.PositionStatusHold,
 	)
@@ -105,7 +115,7 @@ func openPosition(db *gorm.DB, time time.Time) error {
 	// 取引モデルのパラメータチューニングの際は、過去の指定日時の取引価格を取得するため、データベースから価格をひいている。
 	// その際、正しく取得するためにはスクレイピング済みである必要があることに注意。
 	// また、実際の取引の場合はWebSocketAPIなどでリアルタイムな価格を取得する必要があることに注意。
-	trade, err := database.GetTradeByLatestBefore(db, entity.Coincheck, entity.BTC_JPY, time)
+	trade, err := database.GetTradeByLatestBefore(db, exchangePlace, exchangePair, time)
 	if err != nil {
 		return err
 	}
@@ -124,7 +134,7 @@ func openPosition(db *gorm.DB, time time.Time) error {
 	}
 
 	// 新しいポジションを取得するかどうか判定して、そうであればリクエストする
-	trendFollowSignal, err := trendFollowingSignal(db, entity.Coincheck, entity.BTC_JPY, time)
+	trendFollowSignal, err := trendFollowingSignal(db, exchangePlace, exchangePair, time)
 	if err != nil {
 		log.Warn().Stack().Err(err).Send()
 	}
@@ -138,8 +148,8 @@ func openPosition(db *gorm.DB, time time.Time) error {
 		newPosition := entity.Position{
 			PositionType:   entity.PositionTypeLong,
 			PositionStatus: entity.PositionStatusHold,
-			ExchangePlace:  entity.Coincheck,
-			ExchangePair:   entity.BTC_JPY,
+			ExchangePlace:  exchangePlace,
+			ExchangePair:   exchangePair,
 			// 一旦は現在価格で注文しているが、実際には板情報を使って指値注文を出すべき
 			Volume:   UNIT_VOLUME_YEN / currentPrice,
 			BuyPrice: sql.NullFloat64{Float64: currentPrice, Valid: true},
@@ -155,15 +165,15 @@ func openPosition(db *gorm.DB, time time.Time) error {
 	return nil
 }
 
-func WatchPostionOnCoincheck(db *gorm.DB) {
+func WatchPostion(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair) {
 	for {
 		at := time.Now()
-		err := closePositions(db, at)
+		err := closePositions(db, exchangePlace, exchangePair, at)
 		if err != nil {
 			log.Warn().Stack().Err(err).Send()
 		}
 
-		err = openPosition(db, at)
+		err = openPosition(db, exchangePlace, exchangePair, at)
 		if err != nil {
 			log.Warn().Stack().Err(err).Send()
 		}
@@ -172,17 +182,27 @@ func WatchPostionOnCoincheck(db *gorm.DB) {
 	}
 }
 
-func WatchPostionOnCoincheckForSimulation(db *gorm.DB) {
-	simulationTime := time.Date(2023, 10, 1, 0, 0, 0, 0, time.UTC)
-	simulationEnd := time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)
+func simulationRange(exchangePlace entity.ExchangePlace) (time.Time, time.Time) {
+	switch exchangePlace {
+	case entity.Bitflyer:
+		return time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
+	case entity.Coincheck:
+		return time.Date(2023, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
+	default:
+		return time.Now().UTC(), time.Now().UTC()
+	}
+}
+
+func WatchPostionSimulation(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair) {
+	simulationTime, simulationEnd := simulationRange(exchangePlace)
 	for simulationTime.Before(simulationEnd) {
 		simulationTime = simulationTime.Add(1 * time.Hour)
-		err := closePositions(db, simulationTime)
+		err := closePositions(db, exchangePlace, exchangePair, simulationTime)
 		if err != nil {
 			log.Warn().Stack().Err(err).Send()
 		}
 
-		err = openPosition(db, simulationTime)
+		err = openPosition(db, exchangePlace, exchangePair, simulationTime)
 		if err != nil {
 			log.Warn().Stack().Err(err).Send()
 		}

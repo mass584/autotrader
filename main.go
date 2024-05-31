@@ -28,7 +28,7 @@ func main() {
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
 
-	modePtr := flag.String("mode", "", "実行モード")
+	modePtr := flag.String("mode", "scraping", "実行モード")
 	placePtr := flag.String("place", "Bitflyer", "取引ペア")
 	pairPtr := flag.String("pair", "BTC_JPY", "取引ペア")
 	flag.Parse()
@@ -60,7 +60,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 今のところはCoincheckにしか対応していない
 	switch *modePtr {
 	case "scraping":
 		err := service.ScrapingTrades(db, place, pair)
@@ -69,15 +68,15 @@ func main() {
 			os.Exit(1)
 		}
 	case "aggregation":
-		err := service.AggregationAllCoincheck(db, pair)
+		err := service.AggregationAll(db, place, pair)
 		if err != nil {
 			log.Error().Stack().Err(err).Send()
 			os.Exit(1)
 		}
 	case "watch":
-		service.WatchPostionOnCoincheck(db)
+		service.WatchPostion(db, place, pair)
 	case "watch_simulation":
-		service.WatchPostionOnCoincheckForSimulation(db)
+		service.WatchPostionSimulation(db, place, pair)
 	default:
 		log.Error().Msg("Invalid execution mode.")
 		os.Exit(1)

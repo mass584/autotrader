@@ -36,15 +36,26 @@ func Aggregation(
 	return nil
 }
 
-func AggregationAllCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) error {
-	tradeAggregations, err := database.GetAllTradeAggregations(db, entity.Coincheck, exchangePair)
+func aggregateFrom(exchangePlace entity.ExchangePlace) time.Time {
+	switch exchangePlace {
+	case entity.Bitflyer:
+		return time.Date(2024, 4, 30, 0, 0, 0, 0, time.UTC)
+	case entity.Coincheck:
+		return time.Date(2023, 2, 23, 0, 0, 0, 0, time.UTC)
+	default:
+		return time.Now().UTC()
+	}
+}
+
+func AggregationAll(db *gorm.DB, exchangePlace entity.ExchangePlace, exchangePair entity.ExchangePair) error {
+	tradeAggregations, err := database.GetAllTradeAggregations(db, exchangePlace, exchangePair)
 	if err != nil {
 		return err
 	}
 
 	var from time.Time
 	if len(tradeAggregations) == 0 {
-		from = time.Date(2023, 2, 23, 0, 0, 0, 0, time.UTC)
+		from = aggregateFrom(exchangePlace)
 	} else {
 		from = tradeAggregations[0].AggregateDate.Add(24 * time.Hour)
 	}
@@ -53,5 +64,5 @@ func AggregationAllCoincheck(db *gorm.DB, exchangePair entity.ExchangePair) erro
 	year, month, day := yesterday.Date()
 	to := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 
-	return Aggregation(db, entity.Coincheck, exchangePair, from, to)
+	return Aggregation(db, exchangePlace, exchangePair, from, to)
 }
